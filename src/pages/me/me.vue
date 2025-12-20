@@ -22,7 +22,7 @@ const currentTab = ref(0)
 // 滚动相关状态
 const scrollTop = ref(0)
 const maxHeaderHeight = 200 // 头部最大高度
-const minHeaderHeight = 60 // 头部最小高度（pinned状态）
+const minHeaderHeight = 100 // 头部最小高度（pinned状态）
 const headerHeightRange = maxHeaderHeight - minHeaderHeight
 
 // 计算当前头部高度
@@ -65,25 +65,50 @@ function handleScroll(e: any) {
 </script>
 
 <template>
+  <!-- SVG 定义拱桥形状 -->
+  <svg width="0" height="0">
+    <defs>
+      <clipPath id="bottom-arch-shape" clipPathUnits="objectBoundingBox">
+        <path
+          d="
+            M 0,0
+            L 1,0
+            L 1,1
+            Q 1,0.94 0.94,0.94
+            L 0.06,0.94
+            Q 0,0.94 0,1
+            Z
+          "
+        />
+      </clipPath>
+    </defs>
+  </svg>
+
   <z-paging @scroll="handleScroll">
     <view class="relative flex flex-col">
       <!-- 固定头部背景图片 -->
       <view
-        class="fixed left-0 right-0 top-0 z-10 transition-all duration-300"
+        class="fixed left-0 right-0 top-0 z-50 transition-all duration-300"
         :style="{ height: `${currentHeaderHeight}px` }"
       >
-        <ImageCache use-cache height="100%" width="100%" mode="aspectFill" :src="userInfo.avatar" />
-        <view class="absolute left-0 top-0 h-full w-full bg-black/20 backdrop-blur-[2px]" />
+        <ImageCache
+          use-cache height="100%" width="100%" mode="aspectFill" :src="userInfo.avatar"
+          style="clip-path: url(#bottom-arch-shape);"
+        />
+        <view
+          class="absolute left-0 top-0 h-full w-full bg-black/20 backdrop-blur-[2px]"
+          style="clip-path: url(#bottom-arch-shape);"
+        />
       </view>
 
       <!-- 内容区域 -->
       <view
-        class="relative z-20 flex-1 rounded-t-lg bg-white transition-all duration-300"
+        class="relative z-30 flex-1 bg-white transition-all duration-300"
         :style="{ marginTop: contentMarginTop }"
       >
         <!-- 头像 -->
         <view
-          class="absolute left-4 z-30 h-16 w-16 border-4 border-white rounded-full shadow-lg transition-all duration-300 -top-8"
+          class="absolute left-4 z-40 h-16 w-16 border-4 border-white rounded-full shadow-lg transition-all duration-300 -top-8"
         >
           <ImageCache
             use-cache height="100%" border-radius="9999px" width="100%" mode="aspectFill"
@@ -98,7 +123,7 @@ function handleScroll(e: any) {
 
         <!-- 用户信息 -->
         <view
-          class="flex gap-2 flex-items-center px-4 transition-opacity duration-300"
+          class="flex items-center gap-2 px-4 transition-opacity duration-300"
           :style="{ opacity: userInfoOpacity }"
         >
           <view class="mt-8 flex-1">
@@ -130,7 +155,7 @@ function handleScroll(e: any) {
         <!-- tab栏 -->
         <wd-tabs v-model="currentTab" animated slidable="always" sticky>
           <wd-tab title="作品">
-            <view class="h-screen" />
+            <view class="h-200vh" />
           </wd-tab>
         </wd-tabs>
       </view>
