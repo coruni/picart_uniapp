@@ -71,7 +71,7 @@ export default defineConfig({
     },
   ],
   // 动态图标需要在这里配置，或者写在vue页面中注释掉
-  safelist: ['i-carbon-code', 'i-carbon-home', 'i-carbon-user'],
+  safelist: ['i-carbon-code', 'i-lucide-house', 'i-lucide-user'],
   rules: [
     [
       'p-safe',
@@ -82,6 +82,24 @@ export default defineConfig({
     ],
     ['pt-safe', { 'padding-top': 'env(safe-area-inset-top)' }],
     ['pb-safe', { 'padding-bottom': 'env(safe-area-inset-bottom)' }],
+    // 隐藏滚动条工具类
+    [
+      'scrollbar-none',
+      {
+        'scrollbar-width': 'none',
+        '-ms-overflow-style': 'none',
+      },
+    ],
+    [
+      'scrollbar-none',
+      {
+        '::-webkit-scrollbar': {
+          display: 'none',
+          width: '0',
+          height: '0',
+        },
+      },
+    ],
   ],
   theme: {
     colors: {

@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import type { ArticleEntity } from '@/types/api'
+import type { ArticleEntity } from '@/types/api/article'
 
 import { articleUsingGet } from '@/service'
 import { useAppStore } from '@/store/index'

@@ -4,8 +4,11 @@ import AdapterUniapp from '@alova/adapter-uniapp'
 import { createAlova } from 'alova'
 import { createServerTokenAuthentication } from 'alova/client'
 import VueHook from 'alova/vue'
+import { t } from '@/locale'
+import { useTokenStore } from '@/store/token'
+import { getDeviceId } from '@/utils/deviceId'
 import { toLoginPage } from '@/utils/toLoginPage'
-import { ContentTypeEnum, ResultEnum, ShowMessage } from './tools/enum'
+import { ContentTypeEnum, ResultEnum } from './tools/enum'
 
 // 配置动态Tag
 export const API_DOMAINS = {
@@ -23,6 +26,7 @@ const { onAuthRequired, onResponseRefreshToken } = createServerTokenAuthenticati
   // 如果下面拦截不到，请使用 refreshTokenOnSuccess by 群友@琛
   refreshTokenOnError: {
     isExpired: (error) => {
+      console.log('error===>', error)
       return error.response?.status === ResultEnum.Unauthorized
     },
     handler: async () => {
@@ -57,14 +61,18 @@ const alovaInstance = createAlova({
 
     const { config } = method
     const ignoreAuth = !config.meta?.ignoreAuth
+    // 生成此设备唯一标识
+    const deviceId = getDeviceId()
+    console.log('设备ID:', deviceId)
     console.log('ignoreAuth===>', ignoreAuth)
     // 处理认证信息   自行处理认证问题
     if (ignoreAuth) {
-      const token = 'getToken()'
+      const token = `Bearer ${useTokenStore().tokenInfo?.token}`
       if (!token) {
         throw new Error('[请求错误]：未登录')
       }
-      // method.config.headers.token = token;
+      method.config.headers.Authorization = token
+      method.config.headers['Device-Id'] = deviceId
     }
 
     // 处理动态域名
@@ -83,17 +91,27 @@ const alovaInstance = createAlova({
       errMsg,
     } = response as UniNamespace.RequestSuccessCallbackResult
 
+    // 处理401未授权状态
+    if (statusCode === ResultEnum.Unauthorized) {
+      console.log('401未授权，跳转到登录页')
+      // 清除本地token
+      useTokenStore().clearToken()
+      // 跳转到登录页
+      toLoginPage({ mode: 'reLaunch' })
+      throw new Error(t('login.loginExpired'))
+    }
+
     // 处理特殊请求类型（上传/下载）
     if (requestType === 'upload' || requestType === 'download') {
       return response
     }
 
     // 处理 HTTP 状态码错误
-    if (statusCode !== 200) {
-      const errorMessage = ShowMessage(statusCode) || `HTTP请求错误[${statusCode}]`
+    if (![201, 200].includes(statusCode)) {
+      const errorMessage = (rawData as IResponse)?.message || `HTTP请求错误[${statusCode}]`
       console.error('errorMessage===>', errorMessage)
       uni.showToast({
-        title: errorMessage,
+        title: t(errorMessage),
         icon: 'error',
       })
       throw new Error(`${errorMessage}：${errMsg}`)

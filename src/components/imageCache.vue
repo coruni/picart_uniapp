@@ -1,6 +1,8 @@
 <script lang="ts" setup>
+import { nextTick, onBeforeUnmount } from 'vue'
+
 interface Props {
-  src: string
+  src?: string
   mode?: 'scaleToFill' | 'aspectFit' | 'aspectFill' | 'widthFix' | 'heightFix' | 'top' | 'bottom' | 'center' | 'left' | 'right' | 'top left' | 'top right' | 'bottom left' | 'bottom right'
   width?: string | number
   height?: string | number
@@ -14,9 +16,14 @@ interface Props {
   cacheKey?: string
   border?: boolean
   customClass?: string
+  defaultHeight?: number
+  loadingType?: 'ring' | 'outline'
+  showSkeleton?: boolean
+  skeletonColor?: string
 }
 
 const props = withDefaults(defineProps<Props>(), {
+  src: '',
   mode: 'aspectFill',
   width: '',
   height: '',
@@ -30,6 +37,10 @@ const props = withDefaults(defineProps<Props>(), {
   cacheKey: '',
   border: false,
   customClass: '',
+  defaultHeight: 200,
+  loadingType: 'ring',
+  showSkeleton: false,
+  skeletonColor: '#f0f0f0',
 })
 
 const emit = defineEmits<{
@@ -55,8 +66,12 @@ const imageSrc = ref('')
 const isLoading = ref(true)
 const isError = ref(false)
 const isLoaded = ref(false)
+const retryCount = ref(0)
+const maxRetryCount = 2
+const loadingTimer = ref<number | null>(null)
+const isMounted = ref(false)
 
-// 计算容器样式
+// 计算容器样式 - 确保始终有明确的高度
 const containerStyle = computed(() => {
   const style: any = {}
 
@@ -65,9 +80,19 @@ const containerStyle = computed(() => {
     style.width = typeof props.width === 'number' ? `${props.width}px` : props.width
   }
 
-  // 高度处理
+  // 高度处理 - 关键修复：确保加载时有明确高度
   if (props.height) {
     style.height = typeof props.height === 'number' ? `${props.height}px` : props.height
+    style.minHeight = style.height
+  }
+  else if (props.mode === 'widthFix') {
+    // widthFix模式下，设置最小高度防止塌陷
+    style.minHeight = `${props.defaultHeight}px`
+  }
+  else {
+    // 其他模式，明确设置高度
+    style.height = `${props.defaultHeight}px`
+    style.minHeight = `${props.defaultHeight}px`
   }
 
   // 圆角处理
@@ -80,21 +105,50 @@ const containerStyle = computed(() => {
   return style
 })
 
+// 计算图片样式
+const imageStyle = computed(() => {
+  const style: any = {}
+
+  // 圆角处理
+  if (props.borderRadius !== '0') {
+    style.borderRadius = typeof props.borderRadius === 'number'
+      ? `${props.borderRadius}px`
+      : props.borderRadius
+  }
+
+  // 宽度处理
+  if (props.width) {
+    style.width = typeof props.width === 'number' ? `${props.width}px` : props.width
+  }
+
+  // 高度处理
+  if (props.height) {
+    style.height = typeof props.height === 'number' ? `${props.height}px` : props.height
+  }
+  else if (props.mode !== 'widthFix') {
+    style.height = '100%'
+  }
+
+  return style
+})
+
 // 计算容器类名
 const containerClasses = computed(() => {
-  const classes = ['relative', 'block', 'bg-gray-100', 'overflow-hidden']
+  const classes = ['relative', 'block', 'overflow-hidden']
 
-  // 如果没有传递宽度，默认占满父容器宽度
+  // 确保背景色在加载时显示
+  if (isLoading.value || isError.value) {
+    classes.push('bg-gray-100')
+  }
+
   if (!props.width) {
     classes.push('w-full')
   }
 
-  // 如果没有传递高度，默认占满父容器高度
-  if (!props.height) {
-    classes.push('h-full')
+  if (!props.height && props.mode !== 'widthFix') {
+    classes.push('flex', 'items-center', 'justify-center')
   }
 
-  // 边框处理
   if (props.border) {
     classes.push('border', 'border-solid', 'border-gray-300')
   }
@@ -135,19 +189,19 @@ async function downloadAndCacheImage(src: string): Promise<string> {
     // #ifndef H5
     uni.downloadFile({
       url: src,
+      timeout: 30000,
       success: (res) => {
         if (res.statusCode === 200) {
           const tempFilePath = res.tempFilePath
+
           uni.saveFile({
             tempFilePath,
             success: (saveRes) => {
               const savedFilePath = saveRes.savedFilePath
               saveImageToCache(getCacheKey(src), savedFilePath)
-              console.log('图片已保存到本地:', savedFilePath)
               resolve(savedFilePath)
             },
-            fail: (err) => {
-              console.warn('保存文件失败，使用临时路径', err)
+            fail: () => {
               saveImageToCache(getCacheKey(src), tempFilePath)
               resolve(tempFilePath)
             },
@@ -166,20 +220,28 @@ async function downloadAndCacheImage(src: string): Promise<string> {
 }
 
 async function loadImage() {
+  // 清除之前的定时器
+  if (loadingTimer.value) {
+    clearTimeout(loadingTimer.value)
+    loadingTimer.value = null
+  }
+
   if (!props.src) {
     isError.value = true
     isLoading.value = false
-    imageSrc.value = ''
     return
   }
 
+  // 重置状态
   isLoading.value = true
   isError.value = false
   isLoaded.value = false
+  retryCount.value = 0
 
   try {
     let finalSrc = props.src
 
+    // 处理缓存逻辑
     if (props.useCache && (props.src.startsWith('http://') || props.src.startsWith('https://'))) {
       const cacheKey = getCacheKey(props.src)
       const cachedPath = getImageFromCache(cacheKey)
@@ -187,13 +249,13 @@ async function loadImage() {
       if (cachedPath) {
         // #ifdef H5
         finalSrc = cachedPath
-        console.log('使用缓存图片(H5):', cachedPath)
         // #endif
 
         // #ifndef H5
+        // 验证缓存文件
         try {
           await new Promise((resolve, reject) => {
-            uni.getSavedFileInfo({
+            uni.getFileInfo({
               filePath: cachedPath,
               success: (res) => {
                 if (res.size > 0) {
@@ -207,47 +269,97 @@ async function loadImage() {
             })
           })
           finalSrc = cachedPath
-          console.log('使用缓存图片:', cachedPath)
         }
-        catch (error) {
-          console.log('缓存失效，重新下载', error)
-          finalSrc = await downloadAndCacheImage(props.src)
+        catch {
+          // 缓存失效，重新下载
+          try {
+            finalSrc = await downloadAndCacheImage(props.src)
+          }
+          catch {
+            finalSrc = props.src
+          }
         }
         // #endif
       }
       else {
-        console.log('首次下载图片')
+        // 首次下载
         try {
           finalSrc = await downloadAndCacheImage(props.src)
         }
-        catch (error) {
-          console.warn('下载图片失败，使用原始URL', error)
+        catch {
           finalSrc = props.src
         }
       }
     }
 
+    // 关键修复：使用nextTick确保DOM更新
     imageSrc.value = finalSrc
-    isLoading.value = false
+
+    await nextTick()
+
+    // 设置超时保护，防止图片一直处于加载状态
+    loadingTimer.value = setTimeout(() => {
+      if (isLoading.value && !isLoaded.value && !isError.value) {
+        console.warn('图片加载超时:', props.src)
+        isLoading.value = false
+        isError.value = true
+      }
+    }, 15000) as unknown as number
   }
   catch (error) {
     console.error('加载图片失败', error)
     isError.value = true
-    imageSrc.value = ''
     isLoading.value = false
   }
 }
 
 function handleLoad(event: any) {
+  if (loadingTimer.value) {
+    clearTimeout(loadingTimer.value)
+    loadingTimer.value = null
+  }
+
   isLoaded.value = true
   isLoading.value = false
+  isError.value = false
   emit('load', event)
 }
 
 function handleError(event: ImageErrorEvent) {
+  if (loadingTimer.value) {
+    clearTimeout(loadingTimer.value)
+    loadingTimer.value = null
+  }
+
+  console.error('图片加载失败:', event)
+
+  // 重试机制
+  // #ifndef H5
+  if (retryCount.value < maxRetryCount && props.src && (props.src.startsWith('http://') || props.src.startsWith('https://'))) {
+    retryCount.value++
+    console.log(`尝试重新加载图片 (第${retryCount.value}次):`, props.src)
+
+    if (props.useCache) {
+      const cacheKey = getCacheKey(props.src)
+      try {
+        uni.removeStorageSync(cacheKey)
+      }
+      catch (e) {
+        console.warn('清除缓存失败:', e)
+      }
+    }
+
+    setTimeout(() => {
+      if (isMounted.value) {
+        loadImage()
+      }
+    }, 1000)
+    return
+  }
+  // #endif
+
   isError.value = true
   isLoading.value = false
-  imageSrc.value = ''
   emit('error', event)
 }
 
@@ -255,14 +367,24 @@ function handleClick(event: Event) {
   emit('click', event)
 }
 
+// 监听src变化
 watch(() => props.src, (newSrc, oldSrc) => {
-  if (newSrc !== oldSrc) {
+  if (newSrc !== oldSrc && isMounted.value) {
     loadImage()
   }
-})
+}, { immediate: false })
 
 onMounted(() => {
+  isMounted.value = true
   loadImage()
+})
+
+onBeforeUnmount(() => {
+  isMounted.value = false
+  if (loadingTimer.value) {
+    clearTimeout(loadingTimer.value)
+    loadingTimer.value = null
+  }
 })
 
 defineExpose({
@@ -275,47 +397,66 @@ defineExpose({
   <view
     :class="containerClasses"
     :style="containerStyle"
+    class="image-cache-container"
     @click="handleClick"
   >
     <!-- 加载中状态 -->
-    <view v-if="isLoading" class="absolute left-0 top-0 h-full w-full">
+    <view
+      v-if="isLoading"
+      class="absolute inset-0 z-10 flex items-center justify-center"
+    >
       <view v-if="placeholder" class="h-full w-full">
         <image :src="placeholder" :mode="mode" class="block h-full w-full" />
       </view>
-      <view v-else class="h-full w-full flex flex-col items-center justify-center bg-gray-100">
-        <wd-loading type="ring" :size="40" />
+      <view v-else-if="showSkeleton" class="h-full w-full" :style="{ backgroundColor: skeletonColor }">
+        <view class="h-full w-full animate-pulse">
+          <view class="h-full w-full from-transparent via-white to-transparent bg-gradient-to-r opacity-30" />
+        </view>
+      </view>
+      <view v-else class="flex flex-col items-center justify-center">
+        <view class="relative">
+          <view class="h-12 w-12 rounded-full bg-gray-200 opacity-50" />
+          <view class="absolute left-0 top-0 h-full w-full flex items-center justify-center">
+            <wd-loading :type="loadingType" :size="32" />
+          </view>
+        </view>
+        <!-- <text class="mt-2 text-xs text-gray-500">加载中...</text> -->
       </view>
     </view>
 
     <!-- 错误状态 -->
-    <view v-else-if="isError" class="absolute left-0 top-0 h-full w-full">
+    <view
+      v-else-if="isError"
+      class="absolute inset-0 z-10 flex items-center justify-center bg-gray-100"
+    >
       <view v-if="errorImage" class="h-full w-full">
         <image :src="errorImage" :mode="mode" class="block h-full w-full" />
       </view>
-      <view v-else class="h-full w-full flex flex-col items-center justify-center bg-gray-100">
-        <view class="mb-2 h-15 w-15 flex items-center justify-center rounded-full bg-red-500">
-          <text class="text-4 text-white font-bold">!</text>
+      <view v-else class="flex flex-col items-center justify-center">
+        <view class="mb-2 h-12 w-12 flex items-center justify-center rounded-full bg-red-100">
+          <text class="text-xl text-red-500 font-bold">!</text>
         </view>
-        <text class="mt-2 text-3 text-gray-500">加载失败</text>
+        <!-- <text class="text-xs text-gray-500">加载失败</text> -->
       </view>
     </view>
 
     <!-- 正常图片 -->
     <image
-      v-else-if="imageSrc"
+      v-show="imageSrc && !isError && !isLoading"
       :src="imageSrc"
       :mode="mode"
       :lazy-load="lazyLoad"
-      class="object-cover"
-      :class="[{
-        'animate-fade-in animate-duration-300': fadeShow && isLoaded,
-      }, customClass]"
-      :style="{
-        transitionDuration: `${duration}ms`,
-        borderRadius: typeof borderRadius === 'number' ? `${borderRadius}px` : borderRadius,
-        width: typeof width === 'number' ? `${width}px` : width,
-        height: typeof height === 'number' ? `${height}px` : height,
-      }"
+      class="block" :class="[
+        {
+          'opacity-0': !isLoaded && fadeShow,
+          'opacity-100 transition-opacity duration-300': isLoaded && fadeShow,
+          'opacity-100': !fadeShow,
+          'w-full': !props.width || props.width === '100%',
+          'h-full': props.mode !== 'widthFix' && (!props.height || props.height === '100%'),
+        },
+        customClass,
+      ]"
+      :style="imageStyle"
       @load="handleLoad"
       @error="handleError"
     />
@@ -323,13 +464,22 @@ defineExpose({
 </template>
 
 <style scoped>
-/* 只保留动画定义 */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
+.image-cache-container {
+  position: relative;
+  display: block;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
     opacity: 1;
   }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 </style>

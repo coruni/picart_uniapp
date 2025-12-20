@@ -12,16 +12,12 @@
 :root,
 page {
   // 修改按主题色
-  --wot-color-theme: #ff2d2d;
+  // --wot-color-theme: #ff2d2d;
 
   // 修改按钮背景色
   // --wot-button-primary-bg-color: green;
 }
-body,
-html,
-uni-page {
-  background-color: #fcfcfc;
-}
+
 /*
 border-t-1
 由于uniapp中无法使用*选择器，使用魔法代替*，加上此规则可以简化border与divide的使用，并提升布局的兼容性

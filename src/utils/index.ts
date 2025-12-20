@@ -111,9 +111,16 @@ export function getCurrentPageI18nKey() {
     const allSubPages: PageMetaDatum[] = []
     subPackages?.forEach((config) => {
       config.pages?.forEach((cur) => {
+        // 确保navigationStyle是有效的类型
+        const pageStyle: any = cur.style || {}
+        if (pageStyle.navigationStyle && !['custom', 'default'].includes(pageStyle.navigationStyle)) {
+          pageStyle.navigationStyle = 'default'
+        }
+
         allSubPages.push({
           ...cur,
           path: `/${config.root}/${cur.path}`,
+          style: pageStyle,
         })
       })
     })

@@ -1,5 +1,6 @@
 import { getLastPage } from '@/utils'
 import { debounce } from '@/utils/debounce'
+import { navigateTo, reLaunch } from './router'
 
 interface ToLoginPageOptions {
   /**
@@ -15,7 +16,7 @@ interface ToLoginPageOptions {
 }
 
 // TODO: 自己增加登录页
-const LOGIN_PAGE = '/pages/login/index'
+const LOGIN_PAGE = '/pages-fg/login/login'
 
 /**
  * 跳转到登录页, 带防抖处理
@@ -36,9 +37,9 @@ export const toLoginPage = debounce((options: ToLoginPageOptions = {}) => {
   }
 
   if (mode === 'navigateTo') {
-    uni.navigateTo({ url })
+    navigateTo(url)
   }
   else {
-    uni.reLaunch({ url })
+    reLaunch(url)
   }
 }, 500)

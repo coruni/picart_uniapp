@@ -1,79 +1,143 @@
 <script lang="ts" setup>
 import { storeToRefs } from 'pinia'
-import { LOGIN_PAGE } from '@/router/config'
 import { useUserStore } from '@/store'
-import { useTokenStore } from '@/store/token'
-
-definePage({
-  style: {
-    navigationBarTitleText: '我的',
-  },
-})
 
 const userStore = useUserStore()
-const tokenStore = useTokenStore()
-// 使用storeToRefs解构userInfo
 const { userInfo } = storeToRefs(userStore)
+const currentSwiper = ref<number>(0)
+const swiperList = ref([
+  'https://wot-ui.cn/assets/redpanda.jpg',
+  'https://wot-ui.cn/assets/capybara.jpg',
+  'https://wot-ui.cn/assets/panda.jpg',
+  'https://wot-ui.cn/assets/moon.jpg',
+  'https://wot-ui.cn/assets/meng.jpg',
+])
+const tabsList = ref([
+  {
+    title: '作品',
+  },
+])
+const currentTab = ref(0)
 
-// 微信小程序下登录
-async function handleLogin() {
-  // #ifdef MP-WEIXIN
-  // 微信登录
-  await tokenStore.wxLogin()
+// 滚动相关状态
+const scrollTop = ref(0)
+const maxHeaderHeight = 200 // 头部最大高度
+const minHeaderHeight = 60 // 头部最小高度（pinned状态）
+const headerHeightRange = maxHeaderHeight - minHeaderHeight
 
-  // #endif
-  // #ifndef MP-WEIXIN
-  uni.navigateTo({
-    url: `${LOGIN_PAGE}`,
-  })
-  // #endif
-}
+// 计算当前头部高度
+const currentHeaderHeight = computed(() => {
+  const height = maxHeaderHeight - scrollTop.value
+  return Math.max(minHeaderHeight, Math.min(maxHeaderHeight, height))
+})
 
-function handleLogout() {
-  uni.showModal({
-    title: '提示',
-    content: '确定要退出登录吗？',
-    success: (res) => {
-      if (res.confirm) {
-        // 清空用户信息
-        useTokenStore().logout()
-        // 执行退出登录逻辑
-        uni.showToast({
-          title: '退出登录成功',
-          icon: 'success',
-        })
-        // #ifdef MP-WEIXIN
-        // 微信小程序，去首页
-        // uni.reLaunch({ url: '/pages/index/index' })
-        // #endif
-        // #ifndef MP-WEIXIN
-        // 非微信小程序，去登录页
-        // uni.navigateTo({ url: LOGIN_PAGE })
-        // #endif
-      }
-    },
-  })
+// 计算头像位置和大小
+const avatarTranslateY = computed(() => {
+  // 随着滚动，头像向上移动，但最小位置保持在minHeaderHeight中心
+  const translateY = -scrollTop.value * 0.8
+  const maxTranslate = -(maxHeaderHeight - minHeaderHeight) / 2
+  return Math.max(maxTranslate, translateY)
+})
+
+const avatarScale = computed(() => {
+  // 随着滚动，头像略微缩小
+  const scale = 1 - (scrollTop.value / maxHeaderHeight) * 0.2
+  return Math.max(0.8, scale)
+})
+
+// 计算内容区域的顶部边距
+const contentMarginTop = computed(() => {
+  // 内容区域始终跟随头部高度变化
+  return `${currentHeaderHeight.value}px`
+})
+
+// 计算用户信息透明度
+const userInfoOpacity = computed(() => {
+  // 当头部接近最小高度时，用户信息透明度降低
+  const progress = (scrollTop.value - (maxHeaderHeight - minHeaderHeight * 2)) / minHeaderHeight
+  return Math.max(0, Math.min(1, 1 - progress))
+})
+
+// 处理滚动事件
+function handleScroll(e: any) {
+  scrollTop.value = e.detail.scrollTop
 }
 </script>
 
 <template>
-  <view class="profile-container">
-    <view class="mt-3 break-all px-3 text-center text-green-500">
-      {{ userInfo.username ? '已登录' : '未登录' }}
-    </view>
-    <view class="mt-3 break-all px-3">
-      {{ JSON.stringify(userInfo, null, 2) }}
-    </view>
+  <z-paging @scroll="handleScroll">
+    <view class="relative flex flex-col">
+      <!-- 固定头部背景图片 -->
+      <view
+        class="fixed left-0 right-0 top-0 z-10 transition-all duration-300"
+        :style="{ height: `${currentHeaderHeight}px` }"
+      >
+        <ImageCache use-cache height="100%" width="100%" mode="aspectFill" :src="userInfo.avatar" />
+        <view class="absolute left-0 top-0 h-full w-full bg-black/20 backdrop-blur-[2px]" />
+      </view>
 
-    <view class="mt-[60vh] px-3">
-      <view class="m-auto w-160px text-center">
-        <button v-if="tokenStore.hasLogin" type="warn" class="w-full" @click="handleLogout">
-          退出登录
-        </button>
-        <button v-else type="primary" class="w-full" @click="handleLogin">
-          登录
-        </button>
+      <!-- 内容区域 -->
+      <view
+        class="relative z-20 flex-1 rounded-t-lg bg-white transition-all duration-300"
+        :style="{ marginTop: contentMarginTop }"
+      >
+        <!-- 头像 -->
+        <view
+          class="absolute left-4 z-30 h-16 w-16 border-4 border-white rounded-full shadow-lg transition-all duration-300 -top-8"
+        >
+          <ImageCache
+            use-cache height="100%" border-radius="9999px" width="100%" mode="aspectFill"
+            :src="userInfo.avatar"
+          />
+          <view
+            class="absolute bottom-0 right-0 h-4 w-4 flex items-center justify-center border-2 border-white rounded-full bg-primary text-white"
+          >
+            <i class="i-lucide-badge-check" />
+          </view>
+        </view>
+
+        <!-- 用户信息 -->
+        <view
+          class="flex gap-2 flex-items-center px-4 transition-opacity duration-300"
+          :style="{ opacity: userInfoOpacity }"
+        >
+          <view class="mt-8 flex-1">
+            <text class="text-lg font-medium">{{ userInfo.nickname || userInfo.username }}</text>
+          </view>
+          <view>
+            <wd-button size="small">
+              <view class="flex items-center gap-1">
+                <i class="i-lucide-pen" />
+                <text>编辑</text>
+              </view>
+            </wd-button>
+          </view>
+        </view>
+        <view
+          class="line-clamp-1 block text-ellipsis px-4 text-xs transition-opacity duration-300"
+          :style="{ opacity: userInfoOpacity }"
+        >
+          <text class="text-gray-500">{{ userInfo.description }}</text>
+        </view>
+
+        <view class="mt-4 px-4">
+          <wd-swiper
+            v-model:current="currentSwiper" height="80" :indicator="{ type: 'dots-bar' }" :list="swiperList"
+            @change="currentSwiper = $event"
+          />
+        </view>
+
+        <!-- tab栏 -->
+        <wd-tabs v-model="currentTab" animated slidable="always" sticky>
+          <wd-tab title="作品">
+            <view class="h-screen" />
+          </wd-tab>
+        </wd-tabs>
       </view>
     </view>
-  </view>
+    <template #bottom>
+      <!-- 自定义tabbar占位 -->
+      <view class="h-50px" />
+    </template>
+  </z-paging>
 </template>

@@ -1,13 +1,12 @@
 /**
  * 在 uniapp 的 RequestOptions 和 IUniUploadFileOptions 基础上，添加自定义参数
  */
-export type CustomRequestOptions = UniApp.RequestOptions & {
+export type CustomRequestOptions = Omit<UniApp.RequestOptions, 'method'> & IUniUploadFileOptions & {
   query?: Record<string, any>
   /** 出错时是否隐藏错误提示 */
   hideErrorToast?: boolean
-} & IUniUploadFileOptions & {
-  method?: UniApp.RequestOptions['method'] | 'PATCH'
-} // 添加uni.uploadFile参数类型
+  method?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'OPTIONS' | 'HEAD' | 'TRACE' | 'CONNECT' | 'PATCH'
+} // 添加uni.uploadFile参数类型和PATCH方法
 
 /** 主要提供给 openapi-ts-request 生成的代码使用 */
 export type CustomRequestOptions_ = Omit<CustomRequestOptions, 'url'>

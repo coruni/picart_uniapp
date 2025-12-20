@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import { t } from '@/locale/index'
 import { HOME_PAGE } from '@/utils'
+import { reLaunch, switchTab } from '@/utils/router'
 
 definePage({
   style: {
@@ -14,11 +15,11 @@ function goBack() {
   // 当pages.config.ts中配置了tabbar页面时，使用switchTab切换到首页
   // 否则使用navigateTo返回首页
   try {
-    uni.switchTab({ url: HOME_PAGE })
+    switchTab(HOME_PAGE)
   }
   catch (error) {
     // 重启应用
-    uni.reLaunch({ url: '/pages/index/index' })
+    reLaunch('/pages/index/index')
   }
 }
 </script>

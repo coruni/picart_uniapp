@@ -1,17 +1,9 @@
-import type {
-  ILoginForm,
-} from '@/api/login'
-import type { IAuthLoginRes } from '@/api/types/login'
+import type { UserLoginForm, UserLoginRes } from '@/types/api/user'
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue' // 修复：导入 computed
-import {
-  login as _login,
-  logout as _logout,
-  refreshToken as _refreshToken,
-  wxLogin as _wxLogin,
-  getWxCode,
-} from '@/api/login'
+
 import { isDoubleTokenRes, isSingleTokenRes } from '@/api/types/login'
+import { userLoginUsingPost, userLogoutUsingPost, userRefreshTokenUsingPost } from '@/service'
 import { useUserStore } from './user'
 
 /**
@@ -21,21 +13,80 @@ export const isDoubleTokenMode = import.meta.env.VITE_AUTH_MODE === 'double'
 // 初始化状态
 const tokenInfoState = isDoubleTokenMode
   ? {
-      accessToken: '',
-      accessExpiresIn: 0,
+      token: '',
       refreshToken: '',
-      refreshExpiresIn: 0,
     }
   : {
       token: '',
-      expiresIn: 0,
+      refreshToken: '',
     }
 
 export const useTokenStore = defineStore(
   'token',
   () => {
     // 定义用户信息
-    const tokenInfo = ref<IAuthLoginRes>({ ...tokenInfoState })
+    const tokenInfo = ref<UserLoginRes>({
+      id: 0,
+      username: '',
+      nickname: '',
+      email: '',
+      phone: null,
+      status: '',
+      banned: null,
+      banReason: null,
+      avatar: '',
+      description: '',
+      address: null,
+      gender: '',
+      birthDate: null,
+      articleCount: 0,
+      followerCount: 0,
+      followingCount: 0,
+      level: 0,
+      experience: 0,
+      score: 0,
+      wallet: 0,
+      membershipLevel: 0,
+      membershipLevelName: '',
+      membershipStatus: '',
+      membershipStartDate: '',
+      membershipEndDate: '',
+      lastLoginAt: '',
+      lastActiveAt: null,
+      inviterId: null,
+      inviteCode: null,
+      inviteEarnings: '',
+      inviteCount: 0,
+      roles: [],
+      config: {
+        id: 0,
+        userId: 0,
+        articleCommissionRate: '',
+        membershipCommissionRate: '',
+        productCommissionRate: '',
+        serviceCommissionRate: '',
+        enableCustomCommission: false,
+        enableSystemNotification: false,
+        enableCommentNotification: false,
+        enableLikeNotification: false,
+        enableFollowNotification: false,
+        enableMessageNotification: false,
+        enableOrderNotification: false,
+        enablePaymentNotification: false,
+        enableInviteNotification: false,
+        enableEmailNotification: false,
+        enableSmsNotification: false,
+        enablePushNotification: false,
+        remark: '',
+        createdAt: '',
+        updatedAt: '',
+      },
+      createdAt: '',
+      updatedAt: '',
+      isMember: false,
+      refreshToken: '',
+      token: '',
+    })
 
     // 添加一个时间戳 ref 作为响应式依赖
     const nowTime = ref(Date.now())
@@ -51,7 +102,7 @@ export const useTokenStore = defineStore(
     }
 
     // 设置用户信息
-    const setTokenInfo = (val: IAuthLoginRes) => {
+    const setTokenInfo = (val: UserLoginRes) => {
       updateNowTime()
       tokenInfo.value = val
 
@@ -59,15 +110,14 @@ export const useTokenStore = defineStore(
       const now = Date.now()
       if (isSingleTokenRes(val)) {
         // 单token模式
-        const expireTime = now + val.expiresIn * 1000
-        uni.setStorageSync('accessTokenExpireTime', expireTime)
+        // const expireTime = now + val.expiresIn * 1000
+        // uni.setStorageSync('accessTokenExpireTime', expireTime)
       }
       else if (isDoubleTokenRes(val)) {
         // 双token模式
-        const accessExpireTime = now + val.accessExpiresIn * 1000
-        const refreshExpireTime = now + val.refreshExpiresIn * 1000
-        uni.setStorageSync('accessTokenExpireTime', accessExpireTime)
-        uni.setStorageSync('refreshTokenExpireTime', refreshExpireTime)
+        // const accessExpireTime = now + val.accessExpiresIn * 1000
+        // uni.setStorageSync('accessTokenExpireTime', accessExpireTime)
+        // uni.setStorageSync('refreshTokenExpireTime', refreshExpireTime)
       }
     }
 
@@ -106,7 +156,7 @@ export const useTokenStore = defineStore(
      * 登录成功后处理逻辑
      * @param tokenInfo 登录返回的token信息
      */
-    async function _postLogin(tokenInfo: IAuthLoginRes) {
+    async function _postLogin(tokenInfo: UserLoginRes) {
       setTokenInfo(tokenInfo)
       const userStore = useUserStore()
       await userStore.fetchUserInfo()
@@ -119,9 +169,11 @@ export const useTokenStore = defineStore(
      * @param loginForm 登录参数
      * @returns 登录结果
      */
-    const login = async (loginForm: ILoginForm) => {
+    const login = async (loginForm: UserLoginForm) => {
       try {
-        const res = await _login(loginForm)
+        const res = await userLoginUsingPost({
+          body: loginForm,
+        })
         console.log('普通登录-res: ', res)
         await _postLogin(res)
         uni.showToast({
@@ -149,32 +201,32 @@ export const useTokenStore = defineStore(
      * （各有利弊，看业务场景和系统复杂度），这里使用2个接口返回的来模拟
      * @returns 登录结果
      */
-    const wxLogin = async () => {
-      try {
-        // 获取微信小程序登录的code
-        const code = await getWxCode()
-        console.log('微信登录-code: ', code)
-        const res = await _wxLogin(code)
-        console.log('微信登录-res: ', res)
-        await _postLogin(res)
-        uni.showToast({
-          title: '登录成功',
-          icon: 'success',
-        })
-        return res
-      }
-      catch (error) {
-        console.error('微信登录失败:', error)
-        uni.showToast({
-          title: '微信登录失败，请重试',
-          icon: 'error',
-        })
-        throw error
-      }
-      finally {
-        updateNowTime()
-      }
-    }
+    // const wxLogin = async () => {
+    //   try {
+    //     // 获取微信小程序登录的code
+    //     const code = await getWxCode()
+    //     console.log('微信登录-code: ', code)
+    //     const res = await _wxLogin(code)
+    //     console.log('微信登录-res: ', res)
+    //     await _postLogin(res)
+    //     uni.showToast({
+    //       title: '登录成功',
+    //       icon: 'success',
+    //     })
+    //     return res
+    //   }
+    //   catch (error) {
+    //     console.error('微信登录失败:', error)
+    //     uni.showToast({
+    //       title: '微信登录失败，请重试',
+    //       icon: 'error',
+    //     })
+    //     throw error
+    //   }
+    //   finally {
+    //     updateNowTime()
+    //   }
+    // }
 
     /**
      * 退出登录 并 删除用户信息
@@ -182,7 +234,7 @@ export const useTokenStore = defineStore(
     const logout = async () => {
       try {
         // TODO 实现自己的退出登录逻辑
-        await _logout()
+        await userLogoutUsingPost({})
       }
       catch (error) {
         console.error('退出登录失败:', error)
@@ -195,7 +247,7 @@ export const useTokenStore = defineStore(
         uni.removeStorageSync('accessTokenExpireTime')
         uni.removeStorageSync('refreshTokenExpireTime')
         console.log('退出登录-清除用户信息')
-        tokenInfo.value = { ...tokenInfoState }
+        tokenInfo.value = { ...tokenInfoState } as UserLoginRes
         uni.removeStorageSync('token')
         const userStore = useUserStore()
         userStore.clearUserInfo()
@@ -214,15 +266,19 @@ export const useTokenStore = defineStore(
 
       try {
         // 安全检查，确保refreshToken存在
-        if (!isDoubleTokenRes(tokenInfo.value) || !tokenInfo.value.refreshToken) {
+        if (!isDoubleTokenRes(tokenInfo.value as UserLoginRes) || !tokenInfo.value.refreshToken) {
           throw new Error('无效的refreshToken')
         }
 
         const refreshToken = tokenInfo.value.refreshToken
-        const res = await _refreshToken(refreshToken)
+        const res = await userRefreshTokenUsingPost({
+          body: {
+            refreshToken,
+          },
+        })
         console.log('刷新token-res: ', res)
-        setTokenInfo(res)
-        return res
+        setTokenInfo(res as UserLoginRes)
+        return res as UserLoginRes
       }
       catch (error) {
         console.error('刷新token失败:', error)
@@ -246,10 +302,10 @@ export const useTokenStore = defineStore(
       }
 
       if (!isDoubleTokenMode) {
-        return isSingleTokenRes(tokenInfo.value) ? tokenInfo.value.token : ''
+        return isSingleTokenRes(tokenInfo.value as UserLoginRes) ? tokenInfo.value.token : ''
       }
       else {
-        return isDoubleTokenRes(tokenInfo.value) ? tokenInfo.value.accessToken : ''
+        return isDoubleTokenRes(tokenInfo.value as UserLoginRes) ? tokenInfo.value.token : ''
       }
     })
 
@@ -261,10 +317,10 @@ export const useTokenStore = defineStore(
         return false
       }
       if (isDoubleTokenMode) {
-        return isDoubleTokenRes(tokenInfo.value) && !!tokenInfo.value.accessToken
+        return isDoubleTokenRes(tokenInfo.value as UserLoginRes) && !!tokenInfo.value.token
       }
       else {
-        return isSingleTokenRes(tokenInfo.value) && !!tokenInfo.value.token
+        return isSingleTokenRes(tokenInfo.value as UserLoginRes) && !!tokenInfo.value.token
       }
     })
 
@@ -296,11 +352,27 @@ export const useTokenStore = defineStore(
       return getValidToken.value
     }
 
+    /**
+     * 清除token信息（不调用退出登录接口）
+     */
+    const clearToken = () => {
+      updateNowTime()
+
+      // 清除存储的过期时间
+      uni.removeStorageSync('accessTokenExpireTime')
+      uni.removeStorageSync('refreshTokenExpireTime')
+      console.log('清除token信息')
+      tokenInfo.value = { ...tokenInfoState } as UserLoginRes
+      uni.removeStorageSync('token')
+      const userStore = useUserStore()
+      userStore.clearUserInfo()
+    }
+
     return {
       // 核心API方法
       login,
-      wxLogin,
       logout,
+      clearToken,
 
       // 认证状态判断（最常用的）
       hasLogin: hasValidLogin,

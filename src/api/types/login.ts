@@ -1,10 +1,12 @@
+import type { UserLoginRes } from '@/types/api/user'
+
 // 认证模式类型
 export type AuthMode = 'single' | 'double'
 
 // 单Token响应类型
 export interface ISingleTokenRes {
   token: string
-  expiresIn: number // 有效期(秒)
+  refreshToken: string
 }
 
 // 双Token响应类型
@@ -83,7 +85,7 @@ export interface IUpdatePassword {
  * @param tokenRes 登录响应数据
  * @returns 是否为单Token响应
  */
-export function isSingleTokenRes(tokenRes: IAuthLoginRes): tokenRes is ISingleTokenRes {
+export function isSingleTokenRes(tokenRes: UserLoginRes): tokenRes is UserLoginRes {
   return 'token' in tokenRes && !('refreshToken' in tokenRes)
 }
 
@@ -92,6 +94,6 @@ export function isSingleTokenRes(tokenRes: IAuthLoginRes): tokenRes is ISingleTo
  * @param tokenRes 登录响应数据
  * @returns 是否为双Token响应
  */
-export function isDoubleTokenRes(tokenRes: IAuthLoginRes): tokenRes is IDoubleTokenRes {
-  return 'accessToken' in tokenRes && 'refreshToken' in tokenRes
+export function isDoubleTokenRes(tokenRes: UserLoginRes): tokenRes is UserLoginRes {
+  return 'token' in tokenRes && 'refreshToken' in tokenRes
 }

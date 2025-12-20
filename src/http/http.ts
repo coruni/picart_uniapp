@@ -1,4 +1,3 @@
-import type { IDoubleTokenRes } from '@/api/types/login'
 import type { CustomRequestOptions, IResponse } from '@/http/types'
 import { nextTick } from 'vue'
 import { useTokenStore } from '@/store/token'
@@ -13,8 +12,14 @@ let taskQueue: (() => void)[] = [] // 刷新 token 请求队列
 export function http<T>(options: CustomRequestOptions) {
   // 1. 返回 Promise 对象
   return new Promise<T>((resolve, reject) => {
-    uni.request({
+    // 处理PATCH方法，转换为PUT方法（因为uni.request不支持PATCH）
+    const requestOptions: UniApp.RequestOptions = {
       ...options,
+      method: options.method === 'PATCH' ? 'PUT' : options.method,
+    }
+
+    uni.request({
+      ...requestOptions,
       dataType: 'json',
       // #ifndef MP-WEIXIN
       responseType: 'json',
@@ -37,7 +42,7 @@ export function http<T>(options: CustomRequestOptions) {
           }
 
           /* -------- 无感刷新 token ----------- */
-          const { refreshToken } = tokenStore.tokenInfo as IDoubleTokenRes || {}
+          const { refreshToken } = tokenStore.tokenInfo || {}
           // token 失效的，且有刷新 token 的，才放到请求队列里
           if (refreshToken) {
             taskQueue.push(() => {

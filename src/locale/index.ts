@@ -55,13 +55,33 @@ export function getTemplateByKey(key: string) {
  * @returns
  */
 function formatI18n(template: string, data?: any) {
+  // 检查template是否为空或undefined
+  if (!template || typeof template !== 'string') {
+    console.warn('[i18n] formatI18n: template is empty or not a string', template)
+    return template || ''
+  }
+
   return template.replace(/\{([^}]+)\}/g, (match, key: string) => {
     // console.log( match, key) // => { detail.height }  detail.height
     const arr = key.trim().split('.')
     let result = data
+
+    // 检查data是否存在
+    if (!result) {
+      console.warn(`[i18n] formatI18n: data is undefined for key "${key}"`)
+      return match
+    }
+
     while (arr.length) {
       const first = arr.shift()
-      result = result[first]
+      // 检查result是否存在first属性
+      if (result && typeof result === 'object' && first in result) {
+        result = result[first]
+      }
+      else {
+        console.warn(`[i18n] formatI18n: cannot find property "${first}" in data`, data)
+        return match
+      }
     }
     return result
   })
@@ -71,11 +91,17 @@ function formatI18n(template: string, data?: any) {
  * t('introduction',{name:'张三',detail:{height:178,weight:'75kg'}})
  * => formatI18n('我是{name},身高{detail.height},体重{detail.weight}',{name:'张三',detail:{height:178,weight:'75kg'}})
  * 没有key的，可以不传 data；暂不支持数组
- * @param template 多语言模板字符串，eg: `我是{name}`
+ * @param key 多语言key
  * @param {object | undefined} data 需要传递的数据对象，里面的key与多语言字符串对应，eg: `{name:'菲鸽'}`
  * @returns
  */
-export function t(key, data?) {
-  return formatI18n(getTemplateByKey(key), data)
+export function t(key: string, data?: any) {
+  const template = getTemplateByKey(key)
+  // 如果模板为空，返回key本身作为fallback
+  if (!template) {
+    console.warn(`[i18n] t(): template not found for key "${key}", returning key as fallback`)
+    return key
+  }
+  return formatI18n(template, data)
 }
 export default i18n

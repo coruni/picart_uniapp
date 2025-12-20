@@ -25,5 +25,37 @@ onHide(() => {
 </script>
 
 <style lang="scss">
+/* 全局隐藏滚动条 - 适用于所有平台 */
+/* 针对 Webkit 浏览器 */
+::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
 
+/* 针对 Firefox */
+* {
+  scrollbar-width: none !important;
+}
+
+/* 针对 IE 和旧版 Edge */
+* {
+  -ms-overflow-style: none !important;
+}
+
+/* 针对 uni-app 小程序平台 */
+page {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+/* H5 平台特殊处理 */
+/* #ifdef H5 */
+html,
+body {
+  overflow: -moz-scrollbars-none !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+/* #endif */
 </style>

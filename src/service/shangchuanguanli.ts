@@ -14,8 +14,9 @@ export function uploadUsingGet({
   params: API.UploadUsingGetParams;
   options?: CustomRequestOptions_;
 }) {
-  return request<API.Upload[]>('/upload', {
+  return request<{ data: API.Upload[] }>('/upload', {
     method: 'GET',
+    data: {}, // 添加空的data对象以满足类型要求
     params: {
       // page has a default value: 1
       page: '1',

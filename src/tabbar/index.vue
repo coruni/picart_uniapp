@@ -1,6 +1,7 @@
 <script setup lang="ts">
 // i-carbon-code
 import type { CustomTabBarItem } from './types'
+import { navigateTo, switchTab } from '@/utils/router'
 import { customTabbarEnable, needHideNativeTabbar, tabbarCacheEnable } from './config'
 import { getI18nText, setTabbarItem } from './i18n'
 import { tabbarList, tabbarStore } from './store'
@@ -34,10 +35,10 @@ function handleClick(index: number) {
   const url = tabbarList[index].pagePath
   tabbarStore.setCurIdx(index)
   if (tabbarCacheEnable) {
-    uni.switchTab({ url })
+    switchTab(url)
   }
   else {
-    uni.navigateTo({ url })
+    navigateTo(url)
   }
 }
 // #ifndef MP-WEIXIN || MP-ALIPAY
