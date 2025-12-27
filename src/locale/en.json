@@ -79,5 +79,9 @@
     "resetSuccess": "Password reset successful",
     "resetFailed": "Password reset failed, please try again later",
     "rememberPassword": "Remember your password?"
+  },
+  "home": {
+    "recommend": "Recommend",
+    "login": "Login"
   }
 }

@@ -1,13 +1,23 @@
 <script lang="ts" setup>
-import type { ArticleEntity } from '@/types/api/article'
+import type { ArticleEntity } from '@/api/types/article'
 
+import { storeToRefs } from 'pinia'
+import { t } from '@/locale'
 import { articleUsingGet } from '@/service'
 import { useAppStore } from '@/store/index'
+import homeHeader from './components/homeHeader.vue'
+// 扩展ArticleEntity类型，添加_imageHeight属性
+interface ExtendedArticleEntity extends Omit<ArticleEntity, 'author'> {
+  _imageHeight?: number
+  author: ArticleEntity['author'] & {
+    lastActiveAt: unknown // 允许任何类型，包括unknown
+  }
+}
 
 defineOptions({
   name: 'Home',
 })
-const appStore = useAppStore()
+const { appConfig } = storeToRefs(useAppStore())
 definePage({
   // 使用 type: "home" 属性设置首页，其他页面不需要设置，默认为page
   type: 'home',
@@ -19,18 +29,35 @@ definePage({
 })
 
 // 循环生成
-const articleData = ref<ArticleEntity[]>([])
+const articleData = ref<ExtendedArticleEntity[]>([])
 const paging = ref<ZPagingRef>()
 const hiddenNavbar = ref<boolean>(false)
+const waterfallRef = ref()
+const categoryId = ref<string>()
 
 async function fetchData(page: number, limit: number) {
-  const res = await articleUsingGet({
-    params: {
-      page,
-      limit,
-    },
-  })
-  paging.value?.complete(res.data || [])
+  try {
+    const res = await articleUsingGet({
+      params: {
+        page,
+        limit,
+        categoryId: Number(categoryId.value),
+      },
+    })
+
+    // 将API返回的数据转换为ExtendedArticleEntity类型
+    const articles = (res.data || []).map(article => ({
+      ...article,
+      _imageHeight: undefined, // 添加_imageHeight属性
+    })) as ExtendedArticleEntity[]
+
+    // 通知z-paging完成加载
+    paging.value?.complete(articles)
+  }
+  catch (error) {
+    console.error('获取文章列表失败:', error)
+    paging.value?.complete(false)
+  }
 }
 
 function handleScroll(event: ZPagingParams.ScrollInfo) {
@@ -41,42 +68,39 @@ function handleScroll(event: ZPagingParams.ScrollInfo) {
     hiddenNavbar.value = false
   }
 }
+
+function handleTabChange(id: string) {
+  categoryId.value = id
+  waterfallRef.value?.clearCache()
+  paging.value?.reload()
+}
 </script>
 
 <template>
   <z-paging
-    ref="paging" v-model="articleData" cache-mode="always" cache-key="home-article-list" use-cache
+    ref="paging" v-model="articleData" cache-mode="default" :cache-key="`home-article-list-${categoryId}`"
+    use-cache :auto-hide-loading-after-first-loaded="false" :auto-show-loading-when-reload="true"
     @query="fetchData" @scroll="handleScroll"
   >
-    <template #top>
-      <view class="px-1">
-        <wd-navbar safe-area-inset-top placeholder :bordered="false">
-          <template #left>
-            <text
-              class="from-[#000000] via-[#333333] to-[#666666] bg-gradient-to-r bg-clip-text text-3xl text-transparent font-bold"
-            >
-              {{
-                appStore.appConfig.site_name || '' }}
-            </text>
-          </template>
-          <template #right>
-            <view class="flex items-center space-x-1">
-              <wd-button type="icon" size="small">
-                <view class="i-lucide:search size-5" />
-              </wd-button>
-              <wd-button type="icon" size="small">
-                <view class="i-lucide-mail size-5" />
-              </wd-button>
-            </view>
-          </template>
-        </wd-navbar>
+    <template #loading>
+      <view class="h-full flex flex-col items-center justify-center">
+        <wd-loading size="24px" />
+        <text class="mt-4 text-gray-500">{{ t('common.loading') }}</text>
       </view>
     </template>
-    <view class="grid grid-cols-2 gap-1 px-1">
-      <block v-for="article in articleData" :key="article.id">
-        <ArticleCard :article="article as ArticleEntity" />
-      </block>
-    </view>
+    <template #top>
+      <view class="px-1">
+        <homeHeader @change="handleTabChange" />
+      </view>
+    </template>
+    <WaterfallFlow
+      :key="categoryId" ref="waterfallRef" :articles="articleData as ExtendedArticleEntity[]"
+      :column-count="2" column-gap="4px" container-padding="1"
+    >
+      <template #item="{ article, imageHeight }">
+        <ArticleCard :article="article as ArticleEntity" :image-height="imageHeight" />
+      </template>
+    </WaterfallFlow>
 
     <template #bottom>
       <!-- 自定义tabbar占位 -->
@@ -84,19 +108,3 @@ function handleScroll(event: ZPagingParams.ScrollInfo) {
     </template>
   </z-paging>
 </template>
-
-<style scoped>
-.search-box {
-  display: flex;
-  height: 100%;
-  align-items: center;
-  --wot-search-padding: 0;
-  --wot-search-side-padding: 0;
-
-  :deep() {
-    .wd-search {
-      background: transparent;
-    }
-  }
-}
-</style>

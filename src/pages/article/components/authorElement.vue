@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { ArticleEntity } from '@/types/api/article'
+import type { ArticleEntity } from '@/api/types/article'
 import ImageCache from '@/components/imageCache.vue'
 import { userIdFollowUsingPost, userIdUnfollowUsingPost } from '@/service'
 
@@ -59,7 +59,7 @@ async function handleClickFollow() {
 
 <template>
   <view id="author-element" ref="authorElement" class="px-4">
-    <view class="box-border w-full flex items-center rounded-xl bg-[rgba(0,0,0,0.9)] p-3">
+    <view class="author-element-bg box-border w-full flex items-center rounded-xl p-3">
       <view class="flex flex-1 items-center space-x-2">
         <view class="size-10">
           <ImageCache border-radius="9999px" use-cache width="100%" height="100%" :src="article.author?.avatar || ''" />
@@ -84,3 +84,9 @@ async function handleClickFollow() {
     </view>
   </view>
 </template>
+
+<style scoped>
+  .author-element-bg {
+  background-color: rgba(var(--wot-color-theme, 77, 128, 240), 0.8);
+}
+</style>

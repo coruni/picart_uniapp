@@ -2,6 +2,9 @@
 import { storeToRefs } from 'pinia'
 import { useUserStore } from '@/store'
 
+defineOptions({
+  name: 'Me',
+})
 const userStore = useUserStore()
 const { userInfo } = storeToRefs(userStore)
 const currentSwiper = ref<number>(0)
@@ -18,6 +21,14 @@ const tabsList = ref([
   },
 ])
 const currentTab = ref(0)
+
+definePage({
+  style: {
+    // 'custom' 表示开启自定义导航栏，默认 'default'
+    navigationStyle: 'custom',
+    navigationBarTitleText: '%tabbar.me%',
+  },
+})
 
 // 滚动相关状态
 const scrollTop = ref(0)
@@ -147,7 +158,7 @@ function handleScroll(e: any) {
 
         <view class="mt-4 px-4">
           <wd-swiper
-            v-model:current="currentSwiper" height="80" :indicator="{ type: 'dots-bar' }" :list="swiperList"
+            v-model:current="currentSwiper" height="80" :indicator="true" :list="swiperList"
             @change="currentSwiper = $event"
           />
         </view>

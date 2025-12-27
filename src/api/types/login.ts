@@ -1,4 +1,4 @@
-import type { UserLoginRes } from '@/types/api/user'
+import type { UserLoginRes } from '@/api/types/user'
 
 // 认证模式类型
 export type AuthMode = 'single' | 'double'
@@ -86,7 +86,7 @@ export interface IUpdatePassword {
  * @returns 是否为单Token响应
  */
 export function isSingleTokenRes(tokenRes: UserLoginRes): tokenRes is UserLoginRes {
-  return 'token' in tokenRes && !('refreshToken' in tokenRes)
+  return 'token' in tokenRes
 }
 
 /**

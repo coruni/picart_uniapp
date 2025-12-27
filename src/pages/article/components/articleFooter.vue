@@ -1,26 +1,74 @@
 <script setup lang="ts">
-import type { ArticleEntity } from '@/types/api/article'
+import type { ArticleEntity } from '@/api/types/article'
+import { storeToRefs } from 'pinia'
 import ImageCache from '@/components/imageCache.vue'
+import { t } from '@/locale'
 import { articleIdLikeUsingPost } from '@/service'
 import { useUserStore } from '@/store'
+import CommentPopup from './commentPopup.vue'
 
 const props = defineProps({
   article: {
     type: Object as () => ArticleEntity,
     default: () => ({}),
   },
+  paging: {
+    type: Object as () => ZPagingRef | null,
+    default: null,
+  },
+  showCommentPopup: {
+    type: Boolean,
+    default: false,
+  },
 })
-// 定义emit事件
+
 const emit = defineEmits<{
   (e: 'update:likeStatus', status: boolean): void
   (e: 'update:likeCount', count: number): void
   (e: 'comment'): void
+  (e: 'update:showCommentPopup', value: boolean): void
 }>()
-const userStore = useUserStore()
-// 加载状态
+
+const showCommentPopup = ref<boolean>(props.showCommentPopup)
+const replyTo = ref<{
+  id: string
+  author: {
+    nickname: string
+    username: string
+  }
+} | null>(null)
+
+watch(() => props.showCommentPopup, (newVal) => {
+  showCommentPopup.value = newVal
+})
+
+watch(showCommentPopup, (newVal) => {
+  emit('update:showCommentPopup', newVal)
+})
+
+function setReply(comment: any) {
+  replyTo.value = {
+    id: comment.id.toString(),
+    author: {
+      nickname: comment.author?.nickname || '',
+      username: comment.author?.username || '',
+    },
+  }
+  showCommentPopup.value = true
+}
+
+function clearReply() {
+  replyTo.value = null
+}
+
+defineExpose({
+  setReply,
+  clearReply,
+})
+
+const { userInfo } = storeToRefs(useUserStore())
 const likeLoading = ref(false)
 
-// 点赞按钮
 async function handleClickLike() {
   if (likeLoading.value) {
     return
@@ -30,7 +78,6 @@ async function handleClickLike() {
     const currentStatus = props.article.isLiked || false
     const currentCount = props.article.likes || 0
 
-    // TODO: 调用点赞API
     await articleIdLikeUsingPost({
       params: {
         id: String(props.article.id),
@@ -40,35 +87,34 @@ async function handleClickLike() {
       },
     })
 
-    // 通过emit通知父组件更新状态
     emit('update:likeStatus', !currentStatus)
     emit('update:likeCount', currentStatus ? currentCount - 1 : currentCount + 1)
   }
-
   finally {
     likeLoading.value = false
   }
 }
 
-// 评论按钮
 function handleClickComment() {
+  if (replyTo.value) {
+    replyTo.value = null
+  }
+  showCommentPopup.value = !showCommentPopup.value
+}
+
+function handleCommentSubmit() {
   emit('comment')
 }
 </script>
 
 <template>
   <view class="relative h-12 flex items-center gap-2 px-4">
-    <view class="flex flex-1 items-center">
-      <!-- 输入框 -->
-      <view
-        class="block h-8 flex flex-1 items-center gap-2 rounded-full bg-[#f5f5f5] px-2"
-        @click="handleClickComment"
-      >
-        <ImageCache :src="userStore.userInfo.avatar || ''" border-radius="9999px" height="24px" width="24px" />
-        <text class="text-sm text-sm text-[#999999]">{{ $t('article.comment') }}</text>
+    <view class="flex flex-1 items-center" @click.self="handleClickComment">
+      <view class="block h-8 flex flex-1 items-center gap-2 rounded-full bg-[#f5f5f5] px-2" @click="handleClickComment">
+        <ImageCache :src="userInfo?.avatar || ''" border-radius="9999px" height="24px" width="24px" />
+        <text class="text-sm text-sm text-[#999999]">{{ t('article.comment') }}</text>
       </view>
     </view>
-    <!-- 交互控件 -->
     <view class="flex items-center justify-around gap-2">
       <view class="flex flex-col items-center justify-center px-2" @click="handleClickLike">
         <i
@@ -82,6 +128,11 @@ function handleClickComment() {
       </view>
     </view>
     <view class="top-border-only" />
+
+    <CommentPopup
+      v-model="showCommentPopup" :article-id="article.id" :paging="paging" :reply-to="replyTo"
+      @comment="handleCommentSubmit"
+    />
   </view>
 </template>
 

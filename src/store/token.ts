@@ -1,4 +1,4 @@
-import type { UserLoginForm, UserLoginRes } from '@/types/api/user'
+import type { UserLoginForm, UserLoginRes } from '@/api/types/user'
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue' // 修复：导入 computed
 
@@ -176,10 +176,10 @@ export const useTokenStore = defineStore(
         })
         console.log('普通登录-res: ', res)
         await _postLogin(res)
-        uni.showToast({
-          title: '登录成功',
-          icon: 'success',
-        })
+        // uni.showToast({
+        //   title: '登录成功',
+        //   icon: 'success',
+        // })
         return res
       }
       catch (error) {
@@ -330,7 +330,7 @@ export const useTokenStore = defineStore(
      */
     const hasValidLogin = computed(() => {
       console.log('hasValidLogin', hasLoginInfo.value, !isTokenExpired.value)
-      return hasLoginInfo.value && !isTokenExpired.value
+      return hasLoginInfo.value
     })
 
     /**

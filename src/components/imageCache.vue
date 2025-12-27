@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { nextTick, onBeforeUnmount } from 'vue'
+import { getCurrentInstance, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 
 interface Props {
   src?: string
@@ -20,6 +20,8 @@ interface Props {
   loadingType?: 'ring' | 'outline'
   showSkeleton?: boolean
   skeletonColor?: string
+  viewportLazyLoad?: boolean // 新增：视窗懒加载开关
+  viewportThreshold?: number // 新增：视窗阈值，0-1之间，表示元素进入视窗的比例
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -41,6 +43,8 @@ const props = withDefaults(defineProps<Props>(), {
   loadingType: 'ring',
   showSkeleton: false,
   skeletonColor: '#f0f0f0',
+  viewportLazyLoad: true, // 默认开启视窗懒加载
+  viewportThreshold: 0.1, // 默认10%进入视窗就开始加载
 })
 
 const emit = defineEmits<{
@@ -70,6 +74,11 @@ const retryCount = ref(0)
 const maxRetryCount = 2
 const loadingTimer = ref<number | null>(null)
 const isMounted = ref(false)
+const isInViewport = ref(false)
+const observer = ref<any>(null)
+const containerRef = ref<any>(null)
+const isObserving = ref(false)
+const srcChangeTimer = ref<number | null>(null)
 
 // 计算容器样式 - 确保始终有明确的高度
 const containerStyle = computed(() => {
@@ -296,15 +305,6 @@ async function loadImage() {
     imageSrc.value = finalSrc
 
     await nextTick()
-
-    // 设置超时保护，防止图片一直处于加载状态
-    loadingTimer.value = setTimeout(() => {
-      if (isLoading.value && !isLoaded.value && !isError.value) {
-        console.warn('图片加载超时:', props.src)
-        isLoading.value = false
-        isError.value = true
-      }
-    }, 15000) as unknown as number
   }
   catch (error) {
     console.error('加载图片失败', error)
@@ -367,34 +367,213 @@ function handleClick(event: Event) {
   emit('click', event)
 }
 
-// 监听src变化
+// 清理观察器
+function cleanupObserver() {
+  if (observer.value) {
+    observer.value.disconnect()
+    observer.value = null
+  }
+  isObserving.value = false
+}
+
+// 初始化IntersectionObserver
+function initIntersectionObserver() {
+  if (!props.viewportLazyLoad) {
+    isInViewport.value = true
+    return
+  }
+
+  if (isObserving.value) {
+    return
+  }
+
+  // 先清理旧的观察器
+  cleanupObserver()
+
+  // #ifdef H5
+  if (window.IntersectionObserver) {
+    observer.value = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            isInViewport.value = true
+            cleanupObserver()
+          }
+        })
+      },
+      {
+        threshold: Math.min(Math.max(props.viewportThreshold, 0), 1),
+        rootMargin: '50px',
+      },
+    )
+
+    const tryObserve = (retryCount = 0) => {
+      if (!observer.value || isObserving.value) {
+        return
+      }
+
+      let element = null
+
+      if (containerRef.value) {
+        if (containerRef.value instanceof HTMLElement) {
+          element = containerRef.value
+        }
+        else if (containerRef.value.$el) {
+          element = containerRef.value.$el
+        }
+      }
+
+      if (!element) {
+        const elements = document.querySelectorAll('.image-cache-container')
+        if (elements.length > 0) {
+          element = elements[elements.length - 1]
+        }
+      }
+
+      if (element && element instanceof HTMLElement) {
+        observer.value.observe(element)
+        isObserving.value = true
+      }
+      else {
+        if (retryCount < 3) {
+          setTimeout(() => {
+            tryObserve(retryCount + 1)
+          }, 100 * (retryCount + 1))
+        }
+        else {
+          console.warn('无法获取有效的DOM元素，直接加载图片')
+          isInViewport.value = true
+          cleanupObserver()
+        }
+      }
+    }
+
+    setTimeout(() => {
+      tryObserve()
+    }, 150)
+  }
+  else {
+    isInViewport.value = true
+  }
+  // #endif
+
+  // #ifndef H5
+  try {
+    const instance = getCurrentInstance()
+    if (instance) {
+      observer.value = uni.createIntersectionObserver(instance)
+
+      const threshold = Math.floor(props.viewportThreshold * 100)
+
+      observer.value.relativeToViewport({
+        top: 50,
+        bottom: 50,
+      }).observe('.image-cache-container', (res) => {
+        if (res.intersectionRatio > 0) {
+          isInViewport.value = true
+          cleanupObserver()
+        }
+      })
+
+      isObserving.value = true
+    }
+    else {
+      isInViewport.value = true
+    }
+  }
+  catch (error) {
+    console.warn('创建IntersectionObserver失败，直接加载图片', error)
+    isInViewport.value = true
+  }
+  // #endif
+}
+
+// 监听src变化 - 使用防抖优化频繁变化
 watch(() => props.src, (newSrc, oldSrc) => {
-  if (newSrc !== oldSrc && isMounted.value) {
+  if (newSrc === oldSrc) {
+    return
+  }
+
+  if (srcChangeTimer.value) {
+    clearTimeout(srcChangeTimer.value)
+  }
+
+  srcChangeTimer.value = setTimeout(() => {
+    if (!isMounted.value) {
+      return
+    }
+
+    isInViewport.value = false
+    imageSrc.value = ''
+    isLoading.value = true
+    isError.value = false
+    isLoaded.value = false
+
+    cleanupObserver()
+
+    if (props.viewportLazyLoad) {
+      nextTick(() => {
+        initIntersectionObserver()
+      })
+    }
+    else {
+      isInViewport.value = true
+    }
+  }, 100)
+}, { immediate: false })
+
+// 监听是否进入视窗，进入后才开始加载图片
+watch(isInViewport, (newValue) => {
+  if (newValue && props.src && !isLoaded.value && !isError.value) {
     loadImage()
   }
-}, { immediate: false })
+}, { immediate: true })
 
 onMounted(() => {
   isMounted.value = true
-  loadImage()
+
+  // 如果开启视窗懒加载，初始化IntersectionObserver
+  if (props.viewportLazyLoad) {
+    nextTick(() => {
+      initIntersectionObserver()
+    })
+  }
+  else {
+    // 未开启懒加载，直接加载
+    isInViewport.value = true
+  }
 })
 
 onBeforeUnmount(() => {
   isMounted.value = false
+
   if (loadingTimer.value) {
     clearTimeout(loadingTimer.value)
     loadingTimer.value = null
   }
+
+  if (srcChangeTimer.value) {
+    clearTimeout(srcChangeTimer.value)
+    srcChangeTimer.value = null
+  }
+
+  cleanupObserver()
 })
 
 defineExpose({
   loadImage,
   reload: loadImage,
+  isInViewport: readonly(isInViewport),
+  forceLoad: () => {
+    isInViewport.value = true
+    loadImage()
+  },
 })
 </script>
 
 <template>
   <view
+    ref="containerRef"
     :class="containerClasses"
     :style="containerStyle"
     class="image-cache-container"
@@ -403,7 +582,7 @@ defineExpose({
     <!-- 加载中状态 -->
     <view
       v-if="isLoading"
-      class="absolute inset-0 z-10 flex items-center justify-center"
+      class="absolute inset-0 z-10 flex items-center justify-center rounded-lg"
     >
       <view v-if="placeholder" class="h-full w-full">
         <image :src="placeholder" :mode="mode" class="block h-full w-full" />
@@ -413,7 +592,7 @@ defineExpose({
           <view class="h-full w-full from-transparent via-white to-transparent bg-gradient-to-r opacity-30" />
         </view>
       </view>
-      <view v-else class="flex flex-col items-center justify-center">
+      <view v-else class="flex flex-col items-center justify-center rounded-lg">
         <view class="relative">
           <view class="h-12 w-12 rounded-full bg-gray-200 opacity-50" />
           <view class="absolute left-0 top-0 h-full w-full flex items-center justify-center">

@@ -79,5 +79,9 @@
     "resetSuccess": "密码重置成功",
     "resetFailed": "密码重置失败，请稍后重试",
     "rememberPassword": "想起密码了？"
+  },
+  "home": {
+    "recommend": "推荐",
+    "login": "登录"
   }
 }

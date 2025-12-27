@@ -4,6 +4,7 @@ import AdapterUniapp from '@alova/adapter-uniapp'
 import { createAlova } from 'alova'
 import { createServerTokenAuthentication } from 'alova/client'
 import VueHook from 'alova/vue'
+import { storeToRefs } from 'pinia'
 import { t } from '@/locale'
 import { useTokenStore } from '@/store/token'
 import { getDeviceId } from '@/utils/deviceId'
@@ -61,13 +62,12 @@ const alovaInstance = createAlova({
 
     const { config } = method
     const ignoreAuth = !config.meta?.ignoreAuth
+    const { tokenInfo } = storeToRefs(useTokenStore())
     // 生成此设备唯一标识
     const deviceId = getDeviceId()
-    console.log('设备ID:', deviceId)
-    console.log('ignoreAuth===>', ignoreAuth)
-    // 处理认证信息   自行处理认证问题
+    // 处理认证信息   自行处理认证问
+    const token = `Bearer ${tokenInfo.value?.token}`
     if (ignoreAuth) {
-      const token = `Bearer ${useTokenStore().tokenInfo?.token}`
       if (!token) {
         throw new Error('[请求错误]：未登录')
       }

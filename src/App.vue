@@ -3,10 +3,13 @@ import { onHide, onLaunch, onShow } from '@dcloudio/uni-app'
 import { navigateToInterceptor } from '@/router/interceptor'
 import { useAppStore } from './store/app'
 
-onLaunch((options) => {
+onLaunch(async (options) => {
   console.log('App.vue onLaunch', options)
   const appStore = useAppStore()
-  appStore.getConfig()
+  // const userStore = useUserStore()
+  // userStore.fetchUserInfo()
+  await appStore.getConfig()
+  await appStore.fetchCategory()
 })
 onShow((options) => {
   console.log('App.vue onShow', options)

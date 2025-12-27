@@ -302,6 +302,7 @@ export type ArticleIdUsingGetResponse = {
     updatedAt: string;
     isLiked: boolean;
     isPaid: boolean;
+    isFavorited: boolean;
   };
 };
 
@@ -810,6 +811,7 @@ export type ArticleUsingGetResponse = {
       updatedAt: string;
       isLiked: boolean;
       isPaid: boolean;
+      isFavorited: boolean;
     }[];
     meta: {
       total: number;
