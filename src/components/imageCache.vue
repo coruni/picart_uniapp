@@ -41,7 +41,7 @@ const props = withDefaults(defineProps<Props>(), {
   customClass: '',
   defaultHeight: 200,
   loadingType: 'ring',
-  showSkeleton: false,
+  showSkeleton: true,
   skeletonColor: '#f0f0f0',
   viewportLazyLoad: true, // 默认开启视窗懒加载
   viewportThreshold: 0.1, // 默认10%进入视窗就开始加载
@@ -78,7 +78,7 @@ const isInViewport = ref(false)
 const observer = ref<any>(null)
 const containerRef = ref<any>(null)
 const isObserving = ref(false)
-const srcChangeTimer = ref<number | null>(null)
+const srcChangeTimer = ref<any>(null)
 
 // 计算容器样式 - 确保始终有明确的高度
 const containerStyle = computed(() => {
@@ -582,40 +582,40 @@ defineExpose({
     <!-- 加载中状态 -->
     <view
       v-if="isLoading"
-      class="absolute inset-0 z-10 flex items-center justify-center rounded-lg"
+      class="absolute inset-0 z-10 flex items-center justify-center overflow-hidden"
     >
       <view v-if="placeholder" class="h-full w-full">
         <image :src="placeholder" :mode="mode" class="block h-full w-full" />
       </view>
-      <view v-else-if="showSkeleton" class="h-full w-full" :style="{ backgroundColor: skeletonColor }">
-        <view class="h-full w-full animate-pulse">
-          <view class="h-full w-full from-transparent via-white to-transparent bg-gradient-to-r opacity-30" />
-        </view>
+      <view v-else-if="showSkeleton" class="h-full w-full bg-gray-100">
+        <view class="skeleton-shimmer h-full w-full" />
       </view>
-      <view v-else class="flex flex-col items-center justify-center rounded-lg">
-        <view class="relative">
-          <view class="h-12 w-12 rounded-full bg-gray-200 opacity-50" />
-          <view class="absolute left-0 top-0 h-full w-full flex items-center justify-center">
-            <wd-loading :type="loadingType" :size="32" />
+      <view v-else class="flex flex-col items-center justify-center">
+        <view class="relative flex items-center justify-center">
+          <view class="loading-ring absolute h-12 w-12 animate-spin border-4 border-gray-200 rounded-full" />
+          <view class="loading-ring-inner absolute h-12 w-12 animate-spin border-4 border-primary border-r-transparent border-t-transparent rounded-full" style="animation-duration: 1s;" />
+          <view class="relative z-10 h-8 w-8 flex items-center justify-center">
+            <wd-loading :type="loadingType" :size="20" />
           </view>
         </view>
-        <!-- <text class="mt-2 text-xs text-gray-500">加载中...</text> -->
       </view>
     </view>
 
     <!-- 错误状态 -->
     <view
       v-else-if="isError"
-      class="absolute inset-0 z-10 flex items-center justify-center bg-gray-100"
+      class="absolute inset-0 z-10 flex items-center justify-center bg-gray-50"
     >
       <view v-if="errorImage" class="h-full w-full">
         <image :src="errorImage" :mode="mode" class="block h-full w-full" />
       </view>
       <view v-else class="flex flex-col items-center justify-center">
-        <view class="mb-2 h-12 w-12 flex items-center justify-center rounded-full bg-red-100">
-          <text class="text-xl text-red-500 font-bold">!</text>
+        <view class="mb-3 h-14 w-14 flex items-center justify-center rounded-full bg-red-50">
+          <view class="h-10 w-10 flex items-center justify-center rounded-full bg-red-100">
+            <i class="i-lucide:image-off size-6 text-red-500" />
+          </view>
         </view>
-        <!-- <text class="text-xs text-gray-500">加载失败</text> -->
+        <text class="text-xs text-gray-400">加载失败</text>
       </view>
     </view>
 
@@ -660,5 +660,59 @@ defineExpose({
 
 .animate-pulse {
   animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.skeleton-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.skeleton-shimmer::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.4) 20%,
+    rgba(255, 255, 255, 0.6) 50%,
+    rgba(255, 255, 255, 0.4) 80%,
+    transparent 100%
+  );
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+.loading-ring {
+  box-sizing: border-box;
+}
+
+.loading-ring-inner {
+  box-sizing: border-box;
+  animation-direction: reverse;
 }
 </style>

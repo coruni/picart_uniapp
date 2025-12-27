@@ -6,10 +6,8 @@ import { useAppStore } from './store/app'
 onLaunch(async (options) => {
   console.log('App.vue onLaunch', options)
   const appStore = useAppStore()
-  // const userStore = useUserStore()
-  // userStore.fetchUserInfo()
-  await appStore.getConfig()
-  await appStore.fetchCategory()
+  appStore.getConfig()
+  appStore.fetchCategory()
 })
 onShow((options) => {
   console.log('App.vue onShow', options)

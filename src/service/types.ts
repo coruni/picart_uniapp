@@ -38,13 +38,17 @@ export type ArticleAuthorIdUsingGetResponse = {
       requireLogin: boolean;
       requireFollow: boolean;
       requirePayment: boolean;
+      requireMembership: boolean;
+      listRequireLogin: boolean;
       viewPrice: string;
       type: string;
       content: string;
       images: string[];
-      summary: null;
+      sort: number;
+      summary: string;
       views: number;
       likes: number;
+      commentCount: number;
       status: string;
       cover: string;
       authorId: number;
@@ -53,23 +57,36 @@ export type ArticleAuthorIdUsingGetResponse = {
         username: string;
         nickname: string;
         avatar: string;
+        background: null;
+        level: number;
+        membershipLevel: number;
+        membershipStatus: string;
+        membershipStartDate: string;
+        membershipEndDate: null;
         status: string;
         createdAt: string;
         updatedAt: string;
-        description: null;
+        description: string;
         followerCount: number;
         followingCount: number;
+        lastActiveAt: null;
+        lastLoginAt: string;
+        gender: string;
+        isMember: boolean;
+        isFollowed: boolean;
       };
       category: {
         id: number;
         name: string;
         description: string;
         parentId: number;
+        link: string;
         parent: {
           id: number;
           name: string;
           description: string;
           parentId: null;
+          link: string;
           avatar: string;
           background: string;
           cover: string;
@@ -103,8 +120,13 @@ export type ArticleAuthorIdUsingGetResponse = {
         createdAt: string;
         updatedAt: string;
       }[];
+      downloads: string[];
+      downloadCount: number;
       createdAt: string;
       updatedAt: string;
+      imageCount: number;
+      isLiked: boolean;
+      isPaid: boolean;
     }[];
     meta: {
       total: number;
@@ -213,6 +235,7 @@ export type ArticleIdUsingGetResponse = {
     type: string;
     content: string;
     images: string[];
+    imageCount: string;
     sort: number;
     summary: string;
     views: number;
@@ -303,6 +326,7 @@ export type ArticleIdUsingGetResponse = {
     isLiked: boolean;
     isPaid: boolean;
     isFavorited: boolean;
+    commentCount: number;
   };
 };
 
@@ -483,43 +507,60 @@ export type ArticleRecommendIdUsingGetResponse = {
   message: string;
   data: {
     data: {
-      id?: number;
-      title?: string;
-      requireLogin?: boolean;
-      requireFollow?: boolean;
-      requirePayment?: boolean;
-      viewPrice?: string;
-      type?: string;
-      content?: string;
-      images?: string[];
-      summary?: null;
-      views?: number;
-      likes?: number;
-      status?: string;
-      cover?: string;
-      authorId?: number;
+      id: number;
+      title: string;
+      requireLogin: boolean;
+      requireFollow: boolean;
+      requirePayment: boolean;
+      requireMembership: boolean;
+      listRequireLogin: boolean;
+      viewPrice: string;
+      type: string;
+      content: string;
+      images: string[];
+      sort: number;
+      summary: string;
+      views: number;
+      likes: number;
+      commentCount: number;
+      status: string;
+      cover: string;
+      authorId: number;
       author: {
         id: number;
         username: string;
         nickname: string;
         avatar: string;
+        background: null;
+        level: number;
+        membershipLevel: number;
+        membershipStatus: string;
+        membershipStartDate: string;
+        membershipEndDate: null;
         status: string;
         createdAt: string;
         updatedAt: string;
-        description: null;
+        description: string;
         followerCount: number;
         followingCount: number;
+        lastActiveAt: null;
+        lastLoginAt: string;
+        gender: string;
+        isMember: boolean;
+        isFollowed: boolean;
       };
       category: {
         id: number;
         name: string;
         description: string;
         parentId: number;
+        link: string;
         parent: {
           id: number;
           name: string;
           description: string;
           parentId: null;
+          link: string;
           avatar: string;
           background: string;
           cover: string;
@@ -540,21 +581,26 @@ export type ArticleRecommendIdUsingGetResponse = {
         createdAt: string;
         updatedAt: string;
       };
-      tags?: {
-        id?: number;
-        name?: string;
-        description?: string;
-        avatar?: string;
-        background?: string;
-        cover?: string;
-        sort?: number;
-        articleCount?: number;
-        followCount?: number;
-        createdAt?: string;
-        updatedAt?: string;
+      tags: {
+        id: number;
+        name: string;
+        description: string;
+        avatar: string;
+        background: string;
+        cover: string;
+        sort: number;
+        articleCount: number;
+        followCount: number;
+        createdAt: string;
+        updatedAt: string;
       }[];
-      createdAt?: string;
-      updatedAt?: string;
+      downloads: string[];
+      downloadCount: number;
+      createdAt: string;
+      updatedAt: string;
+      imageCount: number;
+      isLiked: boolean;
+      isPaid: boolean;
     }[];
     meta: {
       total: number;
@@ -593,6 +639,7 @@ export type ArticleSearchUsingGetResponse = {
       type: string;
       content: string;
       images: string[];
+      imageCount: number;
       sort: number;
       summary: string;
       views: number;
@@ -682,6 +729,8 @@ export type ArticleSearchUsingGetResponse = {
       updatedAt: string;
       isLiked: boolean;
       isPaid: boolean;
+      commentCount: number;
+      isFavorited: boolean;
     }[];
     meta: {
       total: number;
@@ -722,6 +771,7 @@ export type ArticleUsingGetResponse = {
       type: string;
       content: string;
       images: string[];
+      imageCount: number;
       sort: number;
       summary: string;
       views: number;
@@ -812,6 +862,7 @@ export type ArticleUsingGetResponse = {
       isLiked: boolean;
       isPaid: boolean;
       isFavorited: boolean;
+      commentCount: number;
     }[];
     meta: {
       total: number;

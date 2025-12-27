@@ -13,7 +13,7 @@ const props = defineProps({
     default: '',
   },
   paging: {
-    type: Object as () => ZPagingRef | null,
+    type: Object as PropType<ZPagingRef | null>,
     default: null,
   },
   replyTo: {
@@ -39,7 +39,7 @@ const userStore = useUserStore()
 const commentContent = ref('')
 const showEmojiPanel = ref<boolean>(false)
 const showImagePanel = ref<boolean>(false)
-const keyboardHeight = ref<number>(0)
+const currentKeyboardHeight = ref<number>(0)
 const { keyboardHeight: storeKeyboardHeight } = storeToRefs(userStore)
 const keyboardListenerRegistered = ref<boolean>(false)
 const isLoading = ref(false)
@@ -49,6 +49,7 @@ const isKeyboardVisible = ref(false)
 onMounted(() => {
   const savedHeight = uni.getStorageSync('keyboardHeight')
   if (savedHeight && savedHeight > 0) {
+    currentKeyboardHeight.value = savedHeight
     userStore.setKeyboardHeight(savedHeight)
   }
 })
@@ -67,8 +68,12 @@ async function handleSubmitComment() {
       },
     })
 
-    if (props.paging) {
+    try {
       props.paging.reload()
+    }
+    catch {
+      const pagings = props.paging as any
+      pagings?.reload()
     }
   }
   finally {
@@ -81,7 +86,7 @@ async function handleSubmitComment() {
 }
 
 function handleEmojiClick() {
-  if (userStore.keyboardHeight > 0) {
+  if (currentKeyboardHeight.value > 0) {
     // #ifdef APP-PLUS || MP-WEIXIN
     uni.hideKeyboard()
     // #endif
@@ -92,7 +97,7 @@ function handleEmojiClick() {
 }
 
 function handleImageClick() {
-  if (userStore.keyboardHeight > 0) {
+  if (currentKeyboardHeight.value > 0) {
     // #ifdef APP-PLUS || MP-WEIXIN
     uni.hideKeyboard()
     // #endif
@@ -128,6 +133,7 @@ function handleInputFocus(e: any) {
       if (res.height > 0) {
         isKeyboardVisible.value = true
         const adjustedHeight = res.height
+        currentKeyboardHeight.value = adjustedHeight
         userStore.setKeyboardHeight(adjustedHeight)
         uni.setStorageSync('keyboardHeight', adjustedHeight)
         showEmojiPanel.value = false
@@ -135,6 +141,7 @@ function handleInputFocus(e: any) {
       }
       else {
         isKeyboardVisible.value = false
+        currentKeyboardHeight.value = 0
         userStore.setKeyboardHeight(0)
         uni.setStorageSync('keyboardHeight', 0)
       }
@@ -203,23 +210,23 @@ watch(() => props.modelValue, (newVal, oldVal) => {
 
 <template>
   <wd-popup
-    :model-value="modelValue" root-portal position="bottom" custom-class="rounded-t-lg"
+    :model-value="modelValue" root-portal position="bottom" custom-class="rounded-t-xl"
     :safe-area-inset-bottom="true" :closable="false" @update:model-value="emit('update:modelValue', $event)"
   >
     <view
       class="flex flex-col" :style="{
-        minHeight: isKeyboardVisible ? `calc(60vh - ${userStore.keyboardHeight}px)` : 'auto',
-        paddingBottom: isKeyboardVisible && !showEmojiPanel && !showImagePanel ? `${userStore.keyboardHeight}px` : '0',
+        minHeight: isKeyboardVisible ? `calc(60vh - ${currentKeyboardHeight}px)` : 'auto',
+        paddingBottom: isKeyboardVisible && !showEmojiPanel && !showImagePanel ? `${currentKeyboardHeight}px` : '0',
         marginBottom: isKeyboardVisible && !showEmojiPanel && !showImagePanel ? '-36px' : '0',
       }"
     >
       <view
         class="p-4" :style="{
           height: isKeyboardVisible && !showEmojiPanel && !showImagePanel
-            ? `calc(60vh - ${userStore.keyboardHeight}px - 120px)`
+            ? `calc(60vh - ${currentKeyboardHeight}px - 120px)`
             : 'auto',
           maxHeight: isKeyboardVisible && !showEmojiPanel && !showImagePanel
-            ? `calc(60vh - ${userStore.keyboardHeight}px - 120px)`
+            ? `calc(60vh - ${currentKeyboardHeight}px - 120px)`
             : showEmojiPanel || showImagePanel
               ? 'calc(60vh - 240px)'
               : '200px',
@@ -261,7 +268,7 @@ watch(() => props.modelValue, (newVal, oldVal) => {
           </wd-button>
         </view>
 
-        <view v-if="showEmojiPanel && keyboardHeight === 0" class="border-t-md border-gray-100 bg-white p-3">
+        <view v-if="showEmojiPanel && currentKeyboardHeight === 0" class="border-t-md border-gray-100 bg-white p-3">
           <view class="max-h-[200px] flex flex-wrap gap-2 overflow-y-auto">
             <text
               v-for="(emoji, index) in ['😀', '😃', '😄', '😁', '😅', '😂', '🤣', '😊', '😇', '🙂', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚', '😋', '😛', '😜', '🤪', '😝', '🤑', '🤗', '🤭', '🤫', '🤔', '🤐', '🤨']"

@@ -41,7 +41,8 @@ function validateEmail(): boolean {
     emailError.value = t('forgotPassword.emailRequired')
     return false
   }
-  if (!validateEmail()) {
+  const isEmail = /^[^\s@]+@[^\s@][^\s.@]*\.[^\s@]+$/.test(val)
+  if (!isEmail) {
     emailError.value = t('forgotPassword.emailInvalid')
     return false
   }

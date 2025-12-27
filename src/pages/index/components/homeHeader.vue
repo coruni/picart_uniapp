@@ -50,6 +50,10 @@ function handleTabChange({ index, name }: { index: number, name: string }) {
 function toLogin() {
   toLoginPage()
 }
+
+function toSearch() {
+  uni.navigateTo({ url: '/pages/search/index' })
+}
 </script>
 
 <template>
@@ -65,7 +69,7 @@ function toLogin() {
       </template>
       <template #title>
         <view class="h-full flex items-center justify-center">
-          <view class="box-border h-8 flex flex-1 items-center gap-2 rounded-full bg-[#f5f5f5] px-4 text-[#999]">
+          <view class="box-border h-8 flex flex-1 items-center gap-2 rounded-full bg-[#f5f5f5] px-4 text-[#999]" @click="toSearch">
             <i class="i-lucide-search size-4" />
             <text class="text-xs">搜索</text>
           </view>

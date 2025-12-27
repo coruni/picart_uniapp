@@ -171,7 +171,7 @@ onLoad(async () => {
         id,
       },
     })
-    article.value = res as ArticleEntity
+    article.value = res as unknown as ArticleEntity
     // 将文章缓存
     uni.setStorageSync(`article-detail-${id}`, JSON.stringify(article.value))
   }
@@ -235,10 +235,9 @@ const articleTime = computed(() => formatTime(article.value?.createdAt || ''))
 
 <template>
   <z-paging
-    ref="paging" v-model="comments" :auto-scroll-to-top-when-reload="false" auto-show-back-to-top
-    class="h-full" :refresher-enabled="false" use-cache cache-mode="always"
-    :cache-key="`article-comment-${id}`" safe-area-inset-top safe-area-inset-bottom
-    :auto-clean-list-when-reload="false" :auto-hide-loading-after-first-loaded="false"
+    ref="paging" v-model="comments" :auto-scroll-to-top-when-reload="false" auto-show-back-to-top class="h-full"
+    :refresher-enabled="false" use-cache cache-mode="always" :cache-key="`article-comment-${id}`" safe-area-inset-top
+    safe-area-inset-bottom :auto-clean-list-when-reload="false" :auto-hide-loading-after-first-loaded="false"
     @query="fetchComments" @scroll="handleScroll"
   >
     <template #top>

@@ -47,6 +47,13 @@ function formatTime(time: string) {
   return `${diffDays}天前`
 }
 const commentTime = computed(() => formatTime(props.comment.createdAt))
+function toCommentDetail(comment: CommentEntity) {
+  // encodeURIComponent 编码
+  const commentData = encodeURIComponent(JSON.stringify(comment))
+  uni.navigateTo({
+    url: `/pages/article/commentDetail?id=${comment.id}&commentData=${commentData}`,
+  })
+}
 </script>
 
 <template>
@@ -54,8 +61,8 @@ const commentTime = computed(() => formatTime(props.comment.createdAt))
     <view class="flex items-center gap-2">
       <view class="size-8 rounded-full">
         <ImageCache
-          :src="comment?.author?.avatar || null" height="100%" width="100%" border-radius="999px"
-          lazy-load viewport-lazy-load
+          :src="comment?.author?.avatar || null" height="100%" width="100%" border-radius="999px" lazy-load
+          viewport-lazy-load
         />
       </view>
       <view class="flex flex-1 flex-col">
@@ -82,8 +89,8 @@ const commentTime = computed(() => formatTime(props.comment.createdAt))
         <view class="flex gap-1 py-1 text-xs">
           <view class="size-4 shrink-0">
             <ImageCache
-              :src="sub?.author?.avatar || null" height="100%" width="100%" border-radius="999px"
-              lazy-load viewport-lazy-load
+              :src="sub?.author?.avatar || null" height="100%" width="100%" border-radius="999px" lazy-load
+              viewport-lazy-load
             />
           </view>
           <view class="flex-1">
@@ -91,15 +98,17 @@ const commentTime = computed(() => formatTime(props.comment.createdAt))
               {{ sub?.author?.nickname || sub?.author?.username || '' }}
             </text>
             <text v-if="sub.parent.id">回复</text>
-            <text class="text-primary">{{ sub?.parent?.author?.nickname || sub?.parent?.author?.username || '' }}: </text>
+            <text class="text-primary">
+              {{ sub?.parent?.author?.nickname || sub?.parent?.author?.username || '' }}:
+            </text>
             <text>{{ sub.content }}</text>
           </view>
         </view>
       </block>
       <view
-        v-if="comment?.replyCount && comment?.replyCount > 2"
-        class="bg-info-100 inline-flex items-center rounded-full bg-gray-100 px-2 py-1 text-xs text-gray-500"
-        type="info" custom-class="w-12"
+        v-if="comment?.replyCount && comment?.replyCount > 2" class="bg-info-100 mt-2 inline-flex items-center rounded-full bg-gray-100 px-2 py-1 text-xs text-gray-500"
+        type="info"
+        custom-class="w-12" @click.prevent="toCommentDetail(comment)"
       >
         <text>更多评论({{ comment?.replyCount || 0 }})</text>
         <i class="i-lucide:chevron-right size-4" />

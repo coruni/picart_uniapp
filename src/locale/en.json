@@ -83,5 +83,8 @@
   "home": {
     "recommend": "Recommend",
     "login": "Login"
+  },
+  "me": {
+    "login": "To Loigin"
   }
 }

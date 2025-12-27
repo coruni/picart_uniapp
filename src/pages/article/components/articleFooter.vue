@@ -13,8 +13,12 @@ const props = defineProps({
     default: () => ({}),
   },
   paging: {
-    type: Object as () => ZPagingRef | null,
+    type: Object as PropType<ZPagingRef>,
     default: null,
+  },
+  showButton: {
+    type: Boolean,
+    default: true,
   },
   showCommentPopup: {
     type: Boolean,
@@ -36,7 +40,7 @@ const replyTo = ref<{
     nickname: string
     username: string
   }
-} | null>(null)
+} | null>(props.replyTo)
 
 watch(() => props.showCommentPopup, (newVal) => {
   showCommentPopup.value = newVal
@@ -115,11 +119,19 @@ function handleCommentSubmit() {
         <text class="text-sm text-sm text-[#999999]">{{ t('article.comment') }}</text>
       </view>
     </view>
-    <view class="flex items-center justify-around gap-2">
-      <view class="flex flex-col items-center justify-center px-2" @click="handleClickLike">
+    <view v-if="showButton" class="flex items-center justify-around gap-2">
+      <view class="flex flex-col cursor-pointer items-center justify-center px-2 text-[#999999]" @click="handleClickLike">
         <i
-          class="size-4" :class="[
-            article?.isLiked ? 'i-lucide:thumbs-up text-[#ff6b6b]' : 'i-lucide:thumbs-up text-[#999999]',
+          class="i-lucide-message-circle size-3"
+        />
+        <text class="text-sm">
+          {{ article?.commentCount || 0 }}
+        </text>
+      </view>
+      <view class="flex flex-col cursor-pointer items-center justify-center px-2" @click="handleClickLike">
+        <i
+          class="size-3" :class="[
+            article?.isLiked ? 'i-lucide-heart text-[#ff6b6b]' : 'i-lucide-heart text-[#999999]',
           ]"
         />
         <text class="text-sm" :class="article?.isLiked ? 'text-[#ff6b6b]' : 'text-[#999999]'">

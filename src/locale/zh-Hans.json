@@ -83,5 +83,8 @@
   "home": {
     "recommend": "推荐",
     "login": "登录"
+  },
+  "me": {
+    "login": "去登录"
   }
 }

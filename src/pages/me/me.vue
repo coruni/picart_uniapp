@@ -1,146 +1,125 @@
 <script lang="ts" setup>
 import { storeToRefs } from 'pinia'
-import { useUserStore } from '@/store'
+import { addUnit, getRect } from 'wot-design-uni/components/common/util'
+import { t } from '@/locale'
+import { bannersActiveUsingGet } from '@/service'
+import { useTokenStore, useUserStore } from '@/store'
+import { toLoginPage } from '@/utils/toLoginPage'
 
 defineOptions({
   name: 'Me',
 })
 const userStore = useUserStore()
 const { userInfo } = storeToRefs(userStore)
+const { hasLogin } = storeToRefs(useTokenStore())
 const currentSwiper = ref<number>(0)
-const swiperList = ref([
-  'https://wot-ui.cn/assets/redpanda.jpg',
-  'https://wot-ui.cn/assets/capybara.jpg',
-  'https://wot-ui.cn/assets/panda.jpg',
-  'https://wot-ui.cn/assets/moon.jpg',
-  'https://wot-ui.cn/assets/meng.jpg',
-])
-const tabsList = ref([
-  {
-    title: '作品',
-  },
-])
+const { proxy } = getCurrentInstance()
+const opacity = ref(0)
+const swiperList = ref<{
+  type: 'image' | 'video'
+  value: string
+  poster?: string
+
+}[]>([])
 const currentTab = ref(0)
+
+async function fetchBanners() {
+  // 获取轮播
+  const banners = await bannersActiveUsingGet({})
+
+  // 处理轮播数据
+  swiperList.value = banners?.map(item => ({
+    type: 'image',
+    value: item.linkUrl,
+    poster: item.imageUrl,
+  })) || []
+}
+fetchBanners()
 
 definePage({
   style: {
-    // 'custom' 表示开启自定义导航栏，默认 'default'
     navigationStyle: 'custom',
     navigationBarTitleText: '%tabbar.me%',
   },
 })
 
-// 滚动相关状态
-const scrollTop = ref(0)
-const maxHeaderHeight = 200 // 头部最大高度
-const minHeaderHeight = 100 // 头部最小高度（pinned状态）
-const headerHeightRange = maxHeaderHeight - minHeaderHeight
+function handleQuery(page: number, limit: number) {
+  console.log('Query user data:', page, limit)
+}
 
-// 计算当前头部高度
-const currentHeaderHeight = computed(() => {
-  const height = maxHeaderHeight - scrollTop.value
-  return Math.max(minHeaderHeight, Math.min(maxHeaderHeight, height))
-})
-
-// 计算头像位置和大小
-const avatarTranslateY = computed(() => {
-  // 随着滚动，头像向上移动，但最小位置保持在minHeaderHeight中心
-  const translateY = -scrollTop.value * 0.8
-  const maxTranslate = -(maxHeaderHeight - minHeaderHeight) / 2
-  return Math.max(maxTranslate, translateY)
-})
-
-const avatarScale = computed(() => {
-  // 随着滚动，头像略微缩小
-  const scale = 1 - (scrollTop.value / maxHeaderHeight) * 0.2
-  return Math.max(0.8, scale)
-})
-
-// 计算内容区域的顶部边距
-const contentMarginTop = computed(() => {
-  // 内容区域始终跟随头部高度变化
-  return `${currentHeaderHeight.value}px`
-})
-
-// 计算用户信息透明度
-const userInfoOpacity = computed(() => {
-  // 当头部接近最小高度时，用户信息透明度降低
-  const progress = (scrollTop.value - (maxHeaderHeight - minHeaderHeight * 2)) / minHeaderHeight
-  return Math.max(0, Math.min(1, 1 - progress))
-})
-
-// 处理滚动事件
 function handleScroll(e: any) {
-  scrollTop.value = e.detail.scrollTop
+  const { scrollTop } = e.detail
+  console.log('Scroll event:', scrollTop)
+  opacity.value = scrollTop / 200
+}
+
+// 计算导航栏高度
+const navbarHeight = ref(0)
+onReady(() => {
+  // #ifdef APP
+  getRect('#navbar', false, proxy).then((rect) => {
+    navbarHeight.value = rect.height
+  })
+
+  // #endif
+})
+const marginTop = ref<string>()
+// #ifdef H5
+marginTop.value = addUnit(180 - 36)
+// #endif
+// #ifdef APP-PLUS
+marginTop.value = addUnit(180 - navbarHeight.value - 92)
+// #endif
+
+function handleClickSwiper(item: { type: string, value: string, poster?: string }) {
+  // 正则匹配id /article/3068
+  const id = item.value.match(/\/article\/(\d+)/)?.[1]
+  if (id) {
+    uni.navigateTo({
+      url: `/pages/article/index?id=${id}`,
+    })
+  }
 }
 </script>
 
 <template>
-  <!-- SVG 定义拱桥形状 -->
-  <svg width="0" height="0">
-    <defs>
-      <clipPath id="bottom-arch-shape" clipPathUnits="objectBoundingBox">
-        <path
-          d="
-            M 0,0
-            L 1,0
-            L 1,1
-            Q 1,0.94 0.94,0.94
-            L 0.06,0.94
-            Q 0,0.94 0,1
-            Z
-          "
-        />
-      </clipPath>
-    </defs>
-  </svg>
-
-  <z-paging @scroll="handleScroll">
-    <view class="relative flex flex-col">
-      <!-- 固定头部背景图片 -->
-      <view
-        class="fixed left-0 right-0 top-0 z-50 transition-all duration-300"
-        :style="{ height: `${currentHeaderHeight}px` }"
+  <z-paging safe-area-inset-bottom @query="handleQuery" @scroll="handleScroll">
+    <template #top>
+      <wd-navbar
+        v-if="hasLogin" id="navbar" safe-area-inset-top custom-class="z-10"
+        :custom-style="`background-color: rgba(255, 255, 255, ${opacity}) !important`" :bordered="false"
       >
-        <ImageCache
-          use-cache height="100%" width="100%" mode="aspectFill" :src="userInfo.avatar"
-          style="clip-path: url(#bottom-arch-shape);"
-        />
-        <view
-          class="absolute left-0 top-0 h-full w-full bg-black/20 backdrop-blur-[2px]"
-          style="clip-path: url(#bottom-arch-shape);"
-        />
+        <template #right>
+          <view
+            class="size-8 flex items-center justify-center rounded-full"
+            :class="[{ 'bg-black/30': opacity === 0 }]"
+          >
+            <i class="i-lucide:sparkles text-sm" :class="[{ 'text-white': opacity === 0 }]" />
+          </view>
+        </template>
+      </wd-navbar>
+    </template>
+    <view v-if="hasLogin" class="relative flex flex-col">
+      <view class="fixed left-0 top-0 z-0 h-48 w-full">
+        <ImageCache use-cache height="100%" width="100%" mode="aspectFill" :src="userInfo?.avatar" />
+        <view class="absolute left-0 top-0 h-full w-full bg-black/20" />
       </view>
 
-      <!-- 内容区域 -->
-      <view
-        class="relative z-30 flex-1 bg-white transition-all duration-300"
-        :style="{ marginTop: contentMarginTop }"
-      >
-        <!-- 头像 -->
-        <view
-          class="absolute left-4 z-40 h-16 w-16 border-4 border-white rounded-full shadow-lg transition-all duration-300 -top-8"
-        >
-          <ImageCache
-            use-cache height="100%" border-radius="9999px" width="100%" mode="aspectFill"
-            :src="userInfo.avatar"
-          />
-          <view
-            class="absolute bottom-0 right-0 h-4 w-4 flex items-center justify-center border-2 border-white rounded-full bg-primary text-white"
-          >
-            <i class="i-lucide-badge-check" />
+      <view class="relative flex-1 rounded-t-xl bg-white" :style="`margin-top: ${marginTop}`">
+        <view class="flex items-start justify-between gap-4 px-4">
+          <view class="relative size-18 flex-shrink-0 border-4 border-white rounded-full shadow-lg -mt-8">
+            <ImageCache
+              use-cache height="100%" border-radius="9999px" width="100%" mode="aspectFill"
+              :src="userInfo?.avatar"
+            />
+            <view
+              v-if="userInfo?.isMember"
+              class="absolute bottom-0 right-1 h-4 w-4 flex items-center justify-center border-2 border-white rounded-full bg-primary/80 text-white"
+            >
+              <i class="i-lucide-badge-check" />
+            </view>
           </view>
-        </view>
-
-        <!-- 用户信息 -->
-        <view
-          class="flex items-center gap-2 px-4 transition-opacity duration-300"
-          :style="{ opacity: userInfoOpacity }"
-        >
-          <view class="mt-8 flex-1">
-            <text class="text-lg font-medium">{{ userInfo.nickname || userInfo.username }}</text>
-          </view>
-          <view>
+          <view class="pt-2">
             <wd-button size="small">
               <view class="flex items-center gap-1">
                 <i class="i-lucide-pen" />
@@ -149,31 +128,56 @@ function handleScroll(e: any) {
             </wd-button>
           </view>
         </view>
-        <view
-          class="line-clamp-1 block text-ellipsis px-4 text-xs transition-opacity duration-300"
-          :style="{ opacity: userInfoOpacity }"
-        >
-          <text class="text-gray-500">{{ userInfo.description }}</text>
+        <view class="px-4">
+          <view class="flex flex-col gap-1 pb-2">
+            <text class="text-lg font-bold" :class="[{ 'text-purple-500 text-shadow ': userInfo?.isMember }]">
+              {{ userInfo?.nickname
+                || userInfo?.username }}
+            </text>
+            <view class="flex items-center gap-1 text-xs text-gray-500">
+              <i class="i-lucide-id-card size-3" />
+              <text>UID: {{ userInfo?.id }}</text>
+            </view>
+            <view class="flex items-center gap-1 text-xs text-gray-500">
+              <i class="i-lucide:clipboard-list size-3" />
+              <text>{{ userInfo?.description }}</text>
+            </view>
+          </view>
         </view>
-
-        <view class="mt-4 px-4">
+        <view class="px-4">
           <wd-swiper
-            v-model:current="currentSwiper" height="80" :indicator="true" :list="swiperList"
+            v-model:current="currentSwiper" autoplay height="80" :indicator="true" :list="swiperList"
             @change="currentSwiper = $event"
-          />
+          >
+            <template #default="{ item }">
+              <ImageCache
+                use-cache :src="(item as any).poster" height="100%" width="100%"
+                @click="handleClickSwiper(item as any)"
+              />
+            </template>
+          </wd-swiper>
         </view>
 
-        <!-- tab栏 -->
-        <wd-tabs v-model="currentTab" animated slidable="always" sticky>
+        <wd-tabs v-model="currentTab" :offset-top="navbarHeight" sticky slidable="always">
           <wd-tab title="作品">
             <view class="h-200vh" />
           </wd-tab>
         </wd-tabs>
       </view>
     </view>
+    <view v-else class="h-[calc(100vh-55px)] flex flex-1 items-center justify-center">
+      <wd-button size="small" @click="toLoginPage">
+        {{ t('me.login') }}
+      </wd-button>
+    </view>
     <template #bottom>
-      <!-- 自定义tabbar占位 -->
       <view class="h-50px" />
     </template>
   </z-paging>
 </template>
+
+<style scoped>
+:deep(.wd-tabs__nav-item) {
+  @apply px-4 !;
+}
+</style>
