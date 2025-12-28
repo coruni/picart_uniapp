@@ -46,10 +46,8 @@ const previousReplyTo = ref(props.replyTo)
 const isKeyboardVisible = ref(false)
 
 onMounted(() => {
-  const savedHeight = uni.getStorageSync('keyboardHeight')
-  if (savedHeight && savedHeight > 0) {
-    currentKeyboardHeight.value = savedHeight
-    userStore.setKeyboardHeight(savedHeight)
+  if (storeKeyboardHeight.value > 0) {
+    currentKeyboardHeight.value = storeKeyboardHeight.value
   }
 })
 
@@ -135,7 +133,6 @@ function handleInputFocus(e: any) {
         const adjustedHeight = res.height
         currentKeyboardHeight.value = adjustedHeight
         userStore.setKeyboardHeight(adjustedHeight)
-        uni.setStorageSync('keyboardHeight', adjustedHeight)
         showEmojiPanel.value = false
         showImagePanel.value = false
       }
@@ -143,7 +140,6 @@ function handleInputFocus(e: any) {
         isKeyboardVisible.value = false
         currentKeyboardHeight.value = 0
         userStore.setKeyboardHeight(0)
-        uni.setStorageSync('keyboardHeight', 0)
       }
     })
     keyboardListenerRegistered.value = true
@@ -152,13 +148,6 @@ function handleInputFocus(e: any) {
 }
 
 function handleInputBlur() {
-  if (!showEmojiPanel.value && !showImagePanel.value) {
-    setTimeout(() => {
-      if (!isKeyboardVisible.value) {
-        userStore.setKeyboardHeight(0)
-      }
-    }, 100)
-  }
 }
 
 onUnmounted(() => {

@@ -89,5 +89,10 @@
   },
   "article": {
     "commentPlaceholder": "评论"
+  },
+  "component": {
+    "imagePreview": {
+      "original": "查看原帖"
+    }
   }
 }

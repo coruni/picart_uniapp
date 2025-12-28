@@ -19,6 +19,14 @@ onShow((options) => {
   else {
     navigateToInterceptor.invoke({ url: '/' })
   }
+  uni.hideTabBar({
+    success: () => {
+      console.log('hideTabBar success')
+    },
+    fail: (err) => {
+      console.log('hideTabBar fail', err)
+    },
+  })
 })
 onHide(() => {
   console.log('App Hide')

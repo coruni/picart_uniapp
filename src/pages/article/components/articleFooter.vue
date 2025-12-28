@@ -44,6 +44,8 @@ const emit = defineEmits<{
 }>()
 
 const showCommentPopup = ref<boolean>(props.showCommentPopup)
+const isDirectClick = ref(false)
+
 const replyTo = ref<{
   id: string
   author: {
@@ -51,7 +53,13 @@ const replyTo = ref<{
     username: string
   }
 } | null>(props.replyTo)
-
+onBackPress(() => {
+  if (showCommentPopup.value) {
+    showCommentPopup.value = false
+    return true
+  }
+  return false
+})
 watch(() => props.replyTo, (newVal) => {
   replyTo.value = newVal
 }, { immediate: true, deep: true })
@@ -65,6 +73,7 @@ watch(showCommentPopup, (newVal) => {
 })
 
 function setReply(comment: any) {
+  isDirectClick.value = false
   replyTo.value = {
     id: comment.id.toString(),
     author: {
@@ -76,7 +85,7 @@ function setReply(comment: any) {
 }
 
 function clearReply() {
-  replyTo.value = null
+  replyTo.value = props.replyTo
 }
 
 defineExpose({
@@ -114,15 +123,22 @@ async function handleClickLike() {
 }
 
 function handleClickComment() {
-  if (replyTo.value) {
-    replyTo.value = null
-  }
+  isDirectClick.value = true
   showCommentPopup.value = !showCommentPopup.value
 }
 
 function handleCommentSubmit() {
+  isDirectClick.value = false
   emit('comment')
 }
+
+watch(showCommentPopup, (newVal) => {
+  if (newVal && isDirectClick.value && replyTo.value) {
+    replyTo.value = props.replyTo
+    isDirectClick.value = false
+  }
+  emit('update:showCommentPopup', newVal)
+})
 </script>
 
 <template>
@@ -156,7 +172,7 @@ function handleCommentSubmit() {
     <view class="top-border-only" />
 
     <CommentPopup
-      v-model="showCommentPopup" :article-id="article.id" :paging="paging" :reply-to="props.replyTo"
+      v-model="showCommentPopup" :article-id="article.id" :paging="paging" :reply-to="replyTo"
       @comment="handleCommentSubmit"
     />
   </view>

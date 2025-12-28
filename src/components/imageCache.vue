@@ -20,8 +20,10 @@ interface Props {
   loadingType?: 'ring' | 'outline'
   showSkeleton?: boolean
   skeletonColor?: string
-  viewportLazyLoad?: boolean // 新增：视窗懒加载开关
-  viewportThreshold?: number // 新增：视窗阈值，0-1之间，表示元素进入视窗的比例
+  viewportLazyLoad?: boolean
+  viewportThreshold?: number
+  hideLoading?: boolean
+  transparentBackground?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -43,8 +45,10 @@ const props = withDefaults(defineProps<Props>(), {
   loadingType: 'ring',
   showSkeleton: true,
   skeletonColor: '#f0f0f0',
-  viewportLazyLoad: true, // 默认开启视窗懒加载
-  viewportThreshold: 0.1, // 默认10%进入视窗就开始加载
+  viewportLazyLoad: true,
+  viewportThreshold: 0.1,
+  hideLoading: false,
+  transparentBackground: false,
 })
 
 const emit = defineEmits<{
@@ -145,8 +149,7 @@ const imageStyle = computed(() => {
 const containerClasses = computed(() => {
   const classes = ['relative', 'block', 'overflow-hidden']
 
-  // 确保背景色在加载时显示
-  if (isLoading.value || isError.value) {
+  if (!props.transparentBackground && !props.hideLoading && (isLoading.value || isError.value)) {
     classes.push('bg-gray-100')
   }
 
@@ -581,13 +584,13 @@ defineExpose({
   >
     <!-- 加载中状态 -->
     <view
-      v-if="isLoading"
+      v-if="isLoading && !props.hideLoading"
       class="absolute inset-0 z-10 flex items-center justify-center overflow-hidden"
     >
-      <view v-if="placeholder" class="h-full w-full">
-        <image :src="placeholder" :mode="mode" class="block h-full w-full" />
+      <view v-if="props.placeholder" class="h-full w-full">
+        <image :src="props.placeholder" :mode="mode" class="block h-full w-full" />
       </view>
-      <view v-else-if="showSkeleton" class="h-full w-full bg-gray-100">
+      <view v-else-if="props.showSkeleton" class="h-full w-full bg-gray-100">
         <view class="skeleton-shimmer h-full w-full" />
       </view>
       <view v-else class="flex flex-col items-center justify-center">
@@ -595,7 +598,7 @@ defineExpose({
           <view class="loading-ring absolute h-12 w-12 animate-spin border-4 border-gray-200 rounded-full" />
           <view class="loading-ring-inner absolute h-12 w-12 animate-spin border-4 border-primary border-r-transparent border-t-transparent rounded-full" style="animation-duration: 1s;" />
           <view class="relative z-10 h-8 w-8 flex items-center justify-center">
-            <wd-loading :type="loadingType" :size="20" />
+            <wd-loading :type="props.loadingType" :size="20" />
           </view>
         </view>
       </view>
@@ -603,8 +606,9 @@ defineExpose({
 
     <!-- 错误状态 -->
     <view
-      v-else-if="isError"
-      class="absolute inset-0 z-10 flex items-center justify-center bg-gray-50"
+      v-else-if="isError && !props.hideLoading"
+      class="absolute inset-0 z-10 flex items-center justify-center"
+      :class="!props.transparentBackground ? 'bg-gray-50' : ''"
     >
       <view v-if="errorImage" class="h-full w-full">
         <image :src="errorImage" :mode="mode" class="block h-full w-full" />

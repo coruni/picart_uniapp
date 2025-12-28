@@ -71,10 +71,7 @@ export const useUserStore = defineStore(
     console.log('userInfo', userInfo.value)
     const isLogin = ref<boolean>(false)
     const token = ref<string>('')
-    // 键盘高度 - 从本地存储恢复，如果没有则默认为0
-    const savedKeyboardHeight = uni.getStorageSync('keyboardHeight') || 0
-    const keyboardHeight = ref<number>(savedKeyboardHeight)
-    // 设置用户信息
+    const keyboardHeight = ref<number>(0)
     const setUserInfo = (val: UserProfile) => {
       // 若头像为空 则使用默认头像
       if (!val.avatar) {
@@ -85,8 +82,6 @@ export const useUserStore = defineStore(
     // 设置键盘高度
     const setKeyboardHeight = (height: number) => {
       keyboardHeight.value = height
-      // 同时保存到本地存储，确保重启后不丢失
-      uni.setStorageSync('keyboardHeight', height)
     }
     const setUserAvatar = (avatar: string) => {
       userInfo.value.avatar = avatar
@@ -131,10 +126,12 @@ export const useUserStore = defineStore(
   },
   {
     persist: {
+      key: 'user-store',
       storage: {
         getItem: uni.getStorageSync,
         setItem: uni.setStorageSync,
       },
+      paths: ['userInfo', 'isLogin', 'token', 'keyboardHeight'],
     },
   },
 )

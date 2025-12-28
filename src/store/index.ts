@@ -16,5 +16,6 @@ setActivePinia(store)
 export default store
 
 export * from './app'
+export * from './imagePreview'
 export * from './token'
 export * from './user'

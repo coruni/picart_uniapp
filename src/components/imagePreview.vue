@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import type { ArticleEntity } from '@/api/types/article'
-import ImageCache from './imageCache.vue'
+import { t } from '@/locale'
+import { currRoute } from '@/utils'
 
 const props = defineProps({
   modelValue: {
@@ -28,12 +29,15 @@ const props = defineProps({
     default: true,
   },
 })
-
 const emit = defineEmits<{
   'update:modelValue': [boolean]
   'change': [number]
 }>()
+// 获取当前实例中的路由信息
+const { path } = currRoute()
+const { id } = currRoute().query
 
+const isArticlePreview = path.includes('/pages/article/index')
 // 当前图片索引
 const currentIdx = ref(props.currentIndex)
 // 触摸相关状态
@@ -62,7 +66,10 @@ const isPinching = ref(false)
 const lastTouchCount = ref(0)
 const hasMoved = ref(false)
 
-// 获取当前图片状态
+const originalStatusBarStyle = ref<'dark' | 'light'>()
+if (uni.getSystemInfoSync().platform === 'android') {
+  originalStatusBarStyle.value = plus.navigator.getStatusBarStyle() as 'dark' | 'light'
+}
 function getCurrentState(index: number) {
   if (!imageStates.value[index]) {
     imageStates.value[index] = {
@@ -358,8 +365,8 @@ function getContainerStyle(index: number) {
   }
 }
 
-// 透明占位图（1x1 透明 PNG）
-const transparentPlaceholder = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII='
+// 黑色占位图（1x1 黑色 PNG）
+const blackPlaceholder = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII='
 
 // 缩略图滚动相关
 const scrollIntoViewId = ref('')
@@ -390,6 +397,29 @@ onBackPress(() => {
   }
   return false
 })
+function handleOriginalClick() {
+  if (!isArticlePreview && props.article?.id) {
+    handleClose()
+    uni.navigateTo({
+      url: `/pages/article/index?id=${props.article?.id}`,
+    })
+  }
+}
+
+watch(() => props.modelValue, (newValue) => {
+  if (newValue) {
+    // #ifdef APP
+    // 图片预览背景是黑色，状态栏图标应该是浅色
+    plus.navigator.setStatusBarStyle('light')
+    // #endif
+  }
+  else {
+    // #ifdef APP
+    // 恢复原始状态栏样式
+    plus.navigator.setStatusBarStyle(originalStatusBarStyle.value)
+    // #endif
+  }
+})
 </script>
 
 <template>
@@ -397,41 +427,44 @@ onBackPress(() => {
     <status-bar />
     <!-- 背景遮罩 -->
     <view
-      class="absolute bottom-0 left-0 right-0 top-0 z-1 h-full w-full bg-black/80 transition-opacity duration-300"
+      class="absolute bottom-0 left-0 right-0 top-0 z-1 h-full w-full bg-black transition-opacity duration-300"
       :class="modelValue ? 'opacity-100' : 'opacity-0'" @click="handleClose"
     />
 
     <!-- 图片容器 -->
-    <view class="relative z-2 flex-1 overflow-hidden">
+    <view class="relative z-2 flex-1 overflow-hidden" :class="[{ 'mb-16': props.showIndicators }]">
       <view
         v-for="index in visibleIndices" :key="index"
-        class="absolute inset-0 h-full w-full flex items-center justify-center"
-        :style="getContainerStyle(index)" @touchstart="handleTouchStart"
-        @touchmove.stop.prevent="handleTouchMove" @touchend="handleTouchEnd"
+        class="absolute inset-0 h-full w-full flex items-center justify-center" :style="getContainerStyle(index)"
+
+        @touchstart="handleTouchStart" @touchmove.stop.prevent="handleTouchMove" @touchend="handleTouchEnd"
       >
         <ImageCache
-          :show-skeleton="false" :fade-show="false" :placeholder="transparentPlaceholder"
-          :lazy-load="false" :viewport-lazy-load="false" :src="images[index]" :style="getImageStyle(index)"
+          skeleton-color="transparent" :show-skeleton="false" :lazy-load="true"
+          transparent-background :src="images[index]" :style="getImageStyle(index)"
           height="100%" width="100%" mode="aspectFit" @click.stop
         />
       </view>
     </view>
     <!-- 关闭按钮 -->
-    <view class="absolute right-6 top-6 z-3 flex items-center justify-center">
+    <view class="absolute right-6 top-12 z-3 flex items-center justify-center">
       <view class="size-8 flex items-center justify-center rounded-full bg-black/50" @click="handleClose">
         <i class="i-lucide-x text-white" />
       </view>
     </view>
     <template v-if="props.showAuthor">
-      <view class="absolute bottom-1/4 right-0 z-3 mr-3 flex flex-col items-center justify-center space-y-2">
+      <view class="absolute bottom-1/6 right-0 z-3 mr-3 flex flex-col items-center justify-center space-y-4">
         <view class="relative">
           <view class="size-8">
             <image-cache
-              :src="props.article?.author?.avatar" use-cache height="100%" width="100%"
-              border-radius="999px" border
+              :src="props.article?.author?.avatar" use-cache height="100%" width="100%" border-radius="999px"
+              transparent-background :show-skeleton="false" lazy-load
+              border
             />
           </view>
-          <view class="absolute left-1/2 box-border size-4 flex flex-shrink-0 items-center justify-center rounded-full bg-primary text-white -bottom-2 -translate-x-1/2">
+          <view
+            class="absolute left-1/2 box-border size-4 flex flex-shrink-0 items-center justify-center rounded-full bg-primary text-white -bottom-2 -translate-x-1/2"
+          >
             <i class="i-lucide-plus size-3 font-bold" />
           </view>
         </view>
@@ -446,6 +479,11 @@ onBackPress(() => {
           <i class="i-lucide-message-circle" />
           <text class="text-sm">{{ props.article?.commentCount || 0 }}</text>
         </view>
+        <view>
+          <wd-button v-if="!isArticlePreview" size="small" custom-class="bg-transparent!" plain @click="handleOriginalClick">
+            <text>{{ t('component.imagePreview.original') }}</text>
+          </wd-button>
+        </view>
       </view>
     </template>
 
@@ -455,22 +493,12 @@ onBackPress(() => {
         <scroll-view :scroll-into-view="scrollIntoViewId" scroll-x class="max-w-full" scroll-with-animation>
           <view class="box-border flex items-center px-4 py-2 space-x-2">
             <view
-              v-for="(url, index) in props.images"
-              :id="`thumbnail-${index}`"
-              :key="index"
-              class="relative box-border h-12 w-12 flex-shrink-0 rounded transition-all duration-300"
-              :class="[
+              v-for="(url, index) in props.images" :id="`thumbnail-${index}`" :key="index"
+              class="relative box-border size-16 flex-shrink-0 rounded transition-all duration-300" :class="[
                 index === currentIdx ? 'shadow-[0_0_0_3px_#3b82f6]' : 'border border-white/30 ',
-              ]"
-              @click.stop="switchToIndex(index)"
+              ]" @click.stop="switchToIndex(index)"
             >
-              <ImageCache
-                :src="url"
-                height="100%"
-                width="100%"
-                border-radius="4px"
-                mode="aspectFill"
-              />
+              <ImageCache transparent-background :show-skeleton="false" lazy-load :src="url" height="100%" width="100%" border-radius="4px" mode="aspectFill" />
             </view>
           </view>
         </scroll-view>

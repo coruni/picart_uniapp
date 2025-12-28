@@ -89,5 +89,10 @@
   },
   "article": {
     "commentPlaceholder": "Comment"
+  },
+  "component": {
+    "imagePreview": {
+      "original": "View"
+    }
   }
 }

@@ -95,7 +95,7 @@ function handleTabChange(id: string) {
     </template>
     <template v-if="appConfig.site_layout === 'waterfall'">
       <WaterfallFlow
-        :key="categoryId" ref="waterfallRef" :articles="(articleData as ExtendedArticleEntity[])"
+        :key="categoryId" ref="waterfallRef" :articles="articleData as ExtendedArticleEntity[]"
         :column-count="2" column-gap="4px" container-padding="1"
       >
         <template #item="{ article, imageHeight }">

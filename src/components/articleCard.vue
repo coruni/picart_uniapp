@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import type { ArticleEntity } from '@/api/types/article'
+import { useImagePreviewStore } from '@/store'
 import { navigateTo } from '@/utils/router'
 
 const props = defineProps({
@@ -7,14 +8,14 @@ const props = defineProps({
     type: Object as PropType<ArticleEntity>,
     default: () => ({}),
   },
-  // 添加图片高度属性
   imageHeight: {
     type: Number,
     default: 200,
   },
 })
 
-// 计算最大高度（屏幕高度的3/4）
+const imagePreviewStore = useImagePreviewStore()
+
 const maxImageHeight = ref(0)
 
 onMounted(() => {
@@ -25,7 +26,6 @@ onMounted(() => {
   })
 })
 
-// 计算实际使用的图片高度（取较小值）
 const actualImageHeight = computed(() => {
   if (maxImageHeight.value === 0) {
     return props.imageHeight
@@ -33,13 +33,30 @@ const actualImageHeight = computed(() => {
   return Math.min(props.imageHeight, maxImageHeight.value)
 })
 
-// 计算图片容器是否需要固定高度
 const shouldUseFixedHeight = computed(() => {
   return props.imageHeight > maxImageHeight.value && maxImageHeight.value > 0
 })
 
 function toArticleDetail() {
   navigateTo(`/pages/article/index?id=${props.article.id}`)
+}
+
+function handleImageClick() {
+  const images = props.article.images || []
+  const cover = props.article.cover
+
+  let displayImages: string[] = []
+  if (images.length === 0 && cover) {
+    displayImages = [cover]
+  }
+  else if (images.length === 1 && cover) {
+    displayImages = [cover]
+  }
+  else {
+    displayImages = images
+  }
+
+  imagePreviewStore.showPreview(displayImages, 0, props.article)
 }
 </script>
 
@@ -51,9 +68,10 @@ function toArticleDetail() {
         height: `${actualImageHeight}px`,
         maxHeight: `${maxImageHeight || 300}px`,
       }"
+      @click.stop="handleImageClick"
     >
       <ImageCache
-        :src="article.cover || article.images[0]"
+        :src="article.cover || article?.images?.[0]"
         width="100%"
         height="100%"
         :use-cache="true"
@@ -78,18 +96,18 @@ function toArticleDetail() {
             width="100%"
             height="100%"
             mode="widthFix"
-            :src="article.author.avatar || ''"
+            :src="article?.author?.avatar || ''"
             border-radius="9999px"
             use-cache
             viewport-lazy-load
             border
           />
         </view>
-        <wd-text :text="article.author.nickname" size="12px" />
+        <wd-text :text="article?.author?.nickname || article?.author?.username || ''" size="12px" />
       </view>
       <view class="flex items-center overflow-hidden text-ellipsis whitespace-nowrap text-sm space-x-2">
         <view class="i-lucide-heart size-4 text-[#999]" />
-        <wd-text mode="text" :text="article.likes" size="12px" />
+        <wd-text mode="text" :text="article?.likes || 0" size="12px" />
       </view>
     </view>
   </view>

@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import type { ArticleEntity } from '@/api/types/article'
+import { useImagePreviewStore } from '@/store'
 
 const props = defineProps({
   article: {
@@ -8,7 +9,8 @@ const props = defineProps({
   },
 })
 
-// 计算时间 分钟前 小时前 几天前 最后是具体时间
+const imagePreviewStore = useImagePreviewStore()
+
 function formatTime(time: string) {
   const now = new Date()
   const articleTime = new Date(time)
@@ -89,12 +91,22 @@ function toArticleDetail() {
     url: `/pages/article/index?id=${props.article.id}`,
   })
 }
+
+function handleImageClick(index: number) {
+  imagePreviewStore.showPreview(displayImages.value, index, props.article)
+}
+
+function toUserDetail() {
+  uni.navigateTo({
+    url: `/pages-fg/user/index?id=${props.article?.author?.id}`,
+  })
+}
 </script>
 
 <template>
   <view @click="toArticleDetail">
     <view class="flex items-center px-4 pt-4">
-      <view class="flex flex-1">
+      <view class="flex flex-1" @click.stop="toUserDetail">
         <view class="size-8">
           <ImageCache :src="article?.author?.avatar" border-radius="999px" border height="100%" width="100%" />
         </view>
@@ -114,25 +126,26 @@ function toArticleDetail() {
         <text class="line-clamp-2 text-xs text-gray-400">{{ articleSummary }}</text>
       </view>
       <view v-if="displayImages.length > 0" class="mt-2">
-        <view v-if="isSingleImage" class="relative max-h-48 max-w-32 overflow-hidden rounded-lg">
+        <view v-if="isSingleImage" class="relative max-h-48 max-w-32 overflow-hidden rounded-lg" @click.stop="handleImageClick(0)">
           <ImageCache :src="displayImages[0]" mode="widthFix" width="100%" height="100%" :use-cache="true" />
         </view>
         <view v-else-if="displayImages.length === 2" class="flex gap-1">
-          <view class="relative flex-1 overflow-hidden rounded-l-lg">
+          <view class="relative flex-1 overflow-hidden rounded-l-lg" @click.stop="handleImageClick(0)">
             <ImageCache :src="displayImages[0]" mode="aspectFill" width="100%" height="100%" :use-cache="true" />
           </view>
-          <view class="relative flex-1 overflow-hidden rounded-r-lg">
+          <view class="relative flex-1 overflow-hidden rounded-r-lg" @click.stop="handleImageClick(1)">
             <ImageCache :src="displayImages[1]" mode="aspectFill" width="100%" height="100%" :use-cache="true" />
           </view>
         </view>
       </view>
 
-      <view v-if="displayImages.length >= 9" class="grid mt-2 gap-1" :class="imageGridClass">
+      <view v-if="displayImages.length >= 3" class="grid mt-2 gap-1" :class="imageGridClass">
         <view
           v-for="(image, index) in displayImages" :key="index"
           class="relative aspect-square overflow-hidden rounded-lg"
+          @click.stop="handleImageClick(index)"
         >
-          <ImageCache :src="image" mode="aspectFill" width="100%" height="100%" :use-cache="true" />
+          <ImageCache lazy-load :viewport-threshold="0.05" :viewport-lazy-load="true" :src="image" mode="aspectFill" width="100%" height="100%" :use-cache="true" />
           <view
             v-if="index === 8 && hasMoreImages"
             class="absolute inset-0 flex items-center justify-center bg-black/50"
@@ -142,9 +155,9 @@ function toArticleDetail() {
         </view>
       </view>
     </view>
-    <view class="px-4 pt-2 space-x-2 space-y-2">
+    <view class="px-4 pt-2 space-x-2">
       <block v-for="tag in article?.tags" :key="tag.id">
-        <wd-tag size="small" round plain type="primary" custom-class="rounded-full!">
+        <wd-tag size="small" round plain type="primary" custom-class="rounded-full! mt-2">
           {{ tag.name }}
         </wd-tag>
       </block>
