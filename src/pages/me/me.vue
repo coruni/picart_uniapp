@@ -5,6 +5,7 @@ import { t } from '@/locale'
 import { bannersActiveUsingGet } from '@/service'
 import { useTokenStore, useUserStore } from '@/store'
 import { toLoginPage } from '@/utils/toLoginPage'
+import ArticleComponent from './components/article.vue'
 
 defineOptions({
   name: 'Me',
@@ -14,6 +15,7 @@ const { userInfo } = storeToRefs(userStore)
 const { hasLogin } = storeToRefs(useTokenStore())
 const currentSwiper = ref<number>(0)
 const { proxy } = getCurrentInstance()
+const articleComponent = ref<InstanceType<typeof ArticleComponent>>()
 const opacity = ref(0)
 const swiperList = ref<{
   type: 'image' | 'video'
@@ -49,7 +51,6 @@ function handleQuery(page: number, limit: number) {
 
 function handleScroll(e: any) {
   const { scrollTop } = e.detail
-  console.log('Scroll event:', scrollTop)
   opacity.value = scrollTop / 200
 }
 
@@ -80,10 +81,18 @@ function handleClickSwiper(item: { type: string, value: string, poster?: string 
     })
   }
 }
+
+// 滚动到底部事件
+function handleScrollLower() {
+  articleComponent.value?.loadMore()
+}
 </script>
 
 <template>
-  <z-paging safe-area-inset-bottom @query="handleQuery" @scroll="handleScroll">
+  <z-paging
+
+    safe-area-inset-bottom @query="handleQuery" @scroll="handleScroll" @scrolltolower="handleScrollLower"
+  >
     <template #top>
       <wd-navbar
         v-if="hasLogin" id="navbar" safe-area-inset-top custom-class="z-10"
@@ -159,8 +168,8 @@ function handleClickSwiper(item: { type: string, value: string, poster?: string 
         </view>
 
         <wd-tabs v-model="currentTab" :offset-top="navbarHeight" sticky slidable="always">
-          <wd-tab title="作品">
-            <view class="h-200vh" />
+          <wd-tab :title="t('me.article')">
+            <ArticleComponent ref="articleComponent" />
           </wd-tab>
         </wd-tabs>
       </view>

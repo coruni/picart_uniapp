@@ -85,10 +85,12 @@
     "login": "登录"
   },
   "me": {
-    "login": "去登录"
+    "login": "去登录",
+    "article": "文章"
   },
   "article": {
-    "commentPlaceholder": "评论"
+    "commentPlaceholder": "评论",
+    "moreOptions": "更多操作"
   },
   "component": {
     "imagePreview": {

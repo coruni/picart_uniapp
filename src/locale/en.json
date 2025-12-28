@@ -85,10 +85,12 @@
     "login": "Login"
   },
   "me": {
-    "login": "To Loigin"
+    "login": "To Loigin",
+    "article": "Article"
   },
   "article": {
-    "commentPlaceholder": "Comment"
+    "commentPlaceholder": "Comment",
+    "moreOptions": "More Actions"
   },
   "component": {
     "imagePreview": {

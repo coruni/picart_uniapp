@@ -78,9 +78,10 @@ function handleTabChange(id: string) {
 
 <template>
   <z-paging
-    ref="paging" v-model="articleData" cache-mode="default" :cache-key="`home-article-list-${categoryId}`"
-    use-cache :auto-hide-loading-after-first-loaded="false" :auto-show-loading-when-reload="true" @query="fetchData"
-    @scroll="handleScroll"
+    ref="paging" v-model="articleData" use-virtual-list cache-mode="default"
+    :preload-page="12"
+    :cache-key="`home-article-list-${categoryId}`" use-cache :auto-hide-loading-after-first-loaded="false"
+    :auto-show-loading-when-reload="true" @query="fetchData" @scroll="handleScroll"
   >
     <template #loading>
       <view class="h-full flex flex-col items-center justify-center">
@@ -95,18 +96,16 @@ function handleTabChange(id: string) {
     </template>
     <template v-if="appConfig.site_layout === 'waterfall'">
       <WaterfallFlow
-        :key="categoryId" ref="waterfallRef" :articles="articleData as ExtendedArticleEntity[]"
+        :key="categoryId" ref="waterfallRef" :articles="(articleData as ExtendedArticleEntity[])"
         :column-count="2" column-gap="4px" container-padding="1"
       >
         <template #item="{ article, imageHeight }">
-          <ArticleCard :article="article as ArticleEntity" :image-height="imageHeight" />
+          <ArticleCard :article="(article as ArticleEntity)" :image-height="imageHeight" />
         </template>
       </WaterfallFlow>
     </template>
-    <template v-else>
-      <block v-for="article in articleData" :key="article.id">
-        <ArticleNormal :article="(article as ArticleEntity)" />
-      </block>
+    <template v-if="appConfig.site_layout === 'grid'" #cell="{ item }">
+      <ArticleNormal :article="(item as ArticleEntity)" />
     </template>
 
     <template #bottom>

@@ -189,6 +189,14 @@ onLoad(async () => {
   }
 })
 
+onBackPress(() => {
+  if (imagePreviewVisible.value || isPopupOpen.value) {
+    imagePreviewVisible.value = false
+    isPopupOpen.value = false
+    return true
+  }
+})
+
 function handleClickLeft() {
   navigateBack()
 }
@@ -389,7 +397,7 @@ function handleImageClick(index: number) {
     >
       <view class="p-4">
         <view class="mb-4 text-center text-lg font-medium">
-          更多操作
+          {{ t('article.moreOptions') }}
         </view>
 
         <!-- 菜单项列表 -->

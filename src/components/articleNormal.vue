@@ -111,7 +111,7 @@ function toUserDetail() {
           <ImageCache :src="article?.author?.avatar" border-radius="999px" border height="100%" width="100%" />
         </view>
         <view class="ml-2 flex flex-1 flex-col">
-          <view class="text-sm text-gray-800 font-bold">
+          <view class="text-sm text-gray-800 font-500">
             {{ article?.author?.nickname ?? article?.author?.username ?? '' }}
           </view>
           <wd-text :text="articleTime" size="10px" />
@@ -120,7 +120,7 @@ function toUserDetail() {
     </view>
     <view class="px-4 pt-2">
       <view>
-        <text class="font-bold">{{ article?.title }}</text>
+        <text class="font-500">{{ article?.title }}</text>
       </view>
       <view class="py-1">
         <text class="line-clamp-2 text-xs text-gray-400">{{ articleSummary }}</text>
@@ -129,7 +129,7 @@ function toUserDetail() {
         <view v-if="isSingleImage" class="relative max-h-48 max-w-32 overflow-hidden rounded-lg" @click.stop="handleImageClick(0)">
           <ImageCache :src="displayImages[0]" mode="widthFix" width="100%" height="100%" :use-cache="true" />
         </view>
-        <view v-else-if="displayImages.length === 2" class="flex gap-1">
+        <view v-else-if="displayImages.length === 2" class="h-36 flex gap-1">
           <view class="relative flex-1 overflow-hidden rounded-l-lg" @click.stop="handleImageClick(0)">
             <ImageCache :src="displayImages[0]" mode="aspectFill" width="100%" height="100%" :use-cache="true" />
           </view>
