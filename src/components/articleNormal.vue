@@ -142,7 +142,7 @@ function toArticleDetail() {
         </view>
       </view>
     </view>
-    <view class="px-4 pt-2 space-x-2">
+    <view class="px-4 pt-2 space-x-2 space-y-2">
       <block v-for="tag in article?.tags" :key="tag.id">
         <wd-tag size="small" round plain type="primary" custom-class="rounded-full!">
           {{ tag.name }}

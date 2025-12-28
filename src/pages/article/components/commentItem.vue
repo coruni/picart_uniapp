@@ -57,12 +57,12 @@ function toCommentDetail(comment: CommentEntity) {
 </script>
 
 <template>
-  <view class="px-4" @click="handleReply(comment)">
+  <view class="px-4 pb-4" @click="handleReply(comment)">
     <view class="flex items-center gap-2">
       <view class="size-8 rounded-full">
         <ImageCache
           :src="comment?.author?.avatar || null" height="100%" width="100%" border-radius="999px" lazy-load
-          viewport-lazy-load
+          viewport-lazy-load border
         />
       </view>
       <view class="flex flex-1 flex-col">
@@ -84,13 +84,18 @@ function toCommentDetail(comment: CommentEntity) {
         {{ comment?.content || '' }}
       </text>
     </view>
-    <view class="pb-2 pl-10">
+    <!-- <view class="pb-2 pl-10">
+      <view class="flex items-center justify-end">
+
+      </view>
+    </view> -->
+    <view v-if="comment?.replies?.length > 0" class="pb-2 pl-10">
       <block v-for="sub in comment.replies.slice(0, 2)" :key="sub.id">
         <view class="flex gap-1 py-1 text-xs">
           <view class="size-4 shrink-0">
             <ImageCache
               :src="sub?.author?.avatar || null" height="100%" width="100%" border-radius="999px" lazy-load
-              viewport-lazy-load
+              viewport-lazy-load border
             />
           </view>
           <view class="flex-1">
@@ -101,14 +106,14 @@ function toCommentDetail(comment: CommentEntity) {
             <text class="text-primary">
               {{ sub?.parent?.author?.nickname || sub?.parent?.author?.username || '' }}:
             </text>
-            <text>{{ sub.content }}</text>
+            <text>{{ sub?.content }}</text>
           </view>
         </view>
       </block>
       <view
-        v-if="comment?.replyCount && comment?.replyCount > 2" class="bg-info-100 mt-2 inline-flex items-center rounded-full bg-gray-100 px-2 py-1 text-xs text-gray-500"
-        type="info"
-        custom-class="w-12" @click.prevent="toCommentDetail(comment)"
+        v-if="comment?.replyCount && comment?.replyCount > 2"
+        class="bg-info-100 mt-2 inline-flex items-center rounded-full bg-gray-100 px-2 py-1 text-xs text-gray-500"
+        type="info" custom-class="w-12" @click.prevent.stop="toCommentDetail(comment)"
       >
         <text>更多评论({{ comment?.replyCount || 0 }})</text>
         <i class="i-lucide:chevron-right size-4" />

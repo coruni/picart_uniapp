@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { storeToRefs } from 'pinia'
-import { commentUsingPost } from '@/service'
 import { useUserStore } from '@/store'
 
 const props = defineProps({
@@ -23,7 +22,7 @@ const props = defineProps({
         nickname: string
         username: string
       }
-    }>,
+    } | null>,
     default: null,
   },
 })
@@ -34,7 +33,7 @@ const emit = defineEmits<{
   'open': []
   'close': []
 }>()
-
+console.log('commentPopup props.replyTo:', props.replyTo)
 const userStore = useUserStore()
 const commentContent = ref('')
 const showEmojiPanel = ref<boolean>(false)
@@ -60,13 +59,14 @@ async function handleSubmitComment() {
   }
   try {
     isLoading.value = true
-    await commentUsingPost({
-      body: {
-        articleId: Number(props.articleId),
-        content: commentContent.value,
-        parentId: props.replyTo?.id ? Number(props.replyTo?.id) : undefined,
-      },
-    })
+    console.log('提交评论', props.replyTo)
+    // await commentUsingPost({
+    //   body: {
+    //     articleId: Number(props.articleId),
+    //     content: commentContent.value,
+    //     parentId: props.replyTo?.id ? Number(props.replyTo?.id) : undefined,
+    //   },
+    // })
 
     try {
       props.paging.reload()

@@ -86,5 +86,8 @@
   },
   "me": {
     "login": "去登录"
+  },
+  "article": {
+    "commentPlaceholder": "评论"
   }
 }

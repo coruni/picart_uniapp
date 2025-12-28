@@ -4,6 +4,7 @@ import type { CommentEntity } from '@/api/types/comments'
 import { getRect } from 'wot-design-uni/components/common/util'
 import wdLoading from 'wot-design-uni/components/wd-loading/wd-loading.vue'
 import { useToast } from 'wot-design-uni/components/wd-toast'
+import ImagePreview from '@/components/imagePreview.vue'
 import { t } from '@/locale/index'
 import { articleIdUsingGet, commentArticleIdUsingGet } from '@/service'
 import { currRoute } from '@/utils'
@@ -53,6 +54,9 @@ const articleFooterRef = ref<InstanceType<typeof ArticleFooter>>()
 const isOffset = ref(false)
 const scrollTop = ref(0)
 const isPopupOpen = ref(false)
+
+const imagePreviewVisible = ref(false)
+const imagePreviewIndex = ref(0)
 
 // 处理滚动
 async function handleScroll(event: ZPagingParams.ScrollInfo) {
@@ -172,6 +176,8 @@ onLoad(async () => {
       },
     })
     article.value = res as unknown as ArticleEntity
+    // 比对更新数据
+    Object.assign(article.value, res)
     // 将文章缓存
     uni.setStorageSync(`article-detail-${id}`, JSON.stringify(article.value))
   }
@@ -231,6 +237,14 @@ function formatTime(time: string) {
   return `${year}-${month}-${day}`
 }
 const articleTime = computed(() => formatTime(article.value?.createdAt || ''))
+function handleComment() {
+  paging.value.reload()
+}
+
+function handleImageClick(index: number) {
+  imagePreviewIndex.value = index
+  imagePreviewVisible.value = true
+}
 </script>
 
 <template>
@@ -286,7 +300,7 @@ const articleTime = computed(() => formatTime(article.value?.createdAt || ''))
         </template>
       </wd-navbar>
     </template>
-    <view class="h-full flex flex-col">
+    <view class="h-full flex flex-1 flex-col">
       <view v-if="isLoading" class="h-full flex flex-col items-center justify-center p-4">
         <wd-loading size="24px" />
         <text class="mt-4 text-gray-500">{{ t('common.loading') }}</text>
@@ -317,26 +331,32 @@ const articleTime = computed(() => formatTime(article.value?.createdAt || ''))
             id="author-element" ref="authorElementRef" :article="article"
             @update:follow-status="handleFollowStatusUpdate"
           />
-
           <view class="p-4">
             <rich-text
-              v-if="!['article.loginRequired', 'article.membershipRequired'].includes(article?.content || '')"
+              v-if="!['article.loginRequired', 'article.membershipRequired', 'article.paymentRequired'].includes(article?.content || '')"
               class="white-space-pre-wrap" :nodes="article?.content"
             />
-            <block v-for="url in article?.images" :key="url">
+            <block v-for="(url, index) in article?.images" :key="url">
               <view class="mb-1">
                 <ImageCache
                   border-radius="4px" use-cache width="100%" mode="widthFix" :src="url" viewport-lazy-load
-                  :viewport-threshold="100"
+                  :viewport-threshold="100" @click="handleImageClick(index)"
                 />
               </view>
+            </block>
+          </view>
+          <view v-if="article?.tags?.length" class="px-4 pt-2 space-x-2 space-y-2">
+            <block v-for="tag in article?.tags" :key="tag.id">
+              <wd-tag size="small" round plain type="primary" custom-class="rounded-full!">
+                {{ tag.name }}
+              </wd-tag>
             </block>
           </view>
         </view>
         <view class="my-4 h-1 bg-gray-100" />
         <view class="sticky top-0 z-50 flex items-center justify-between bg-white px-4 py-2">
           <view class="text-sm font-medium">
-            <text>评论</text>
+            <text>{{ t('article.commentPlaceholder') }}</text>
           </view>
           <view class="text-sm text-gray-500">
             <CommonSelect v-model="commentSort" :options="commentSortOptions" @select="handleSortChange" />
@@ -356,7 +376,8 @@ const articleTime = computed(() => formatTime(article.value?.createdAt || ''))
     <template #bottom>
       <article-footer
         v-if="article" ref="articleFooterRef" v-model:show-comment-popup="isPopupOpen" :article="article"
-        :paging="paging" @update:like-status="handleLikeStatusUpdate" @update:like-count="handleLikeCountUpdate"
+        :paging="paging" @comment="handleComment" @update:like-status="handleLikeStatusUpdate"
+        @update:like-count="handleLikeCountUpdate"
       />
     </template>
     <wd-toast />
@@ -424,6 +445,14 @@ const articleTime = computed(() => formatTime(article.value?.createdAt || ''))
         </view>
       </view>
     </wd-popup>
+
+    <ImagePreview
+      v-model="imagePreviewVisible"
+      :images="article?.images"
+      :article="article"
+      show-author
+      :current-index="imagePreviewIndex"
+    />
   </z-paging>
 </template>
 

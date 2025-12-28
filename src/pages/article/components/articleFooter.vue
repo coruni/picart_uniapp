@@ -24,6 +24,16 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  replyTo: {
+    type: Object as PropType<{
+      id: string
+      author: {
+        nickname: string
+        username: string
+      }
+    } | null>,
+    default: null,
+  },
 })
 
 const emit = defineEmits<{
@@ -41,6 +51,10 @@ const replyTo = ref<{
     username: string
   }
 } | null>(props.replyTo)
+
+watch(() => props.replyTo, (newVal) => {
+  replyTo.value = newVal
+}, { immediate: true, deep: true })
 
 watch(() => props.showCommentPopup, (newVal) => {
   showCommentPopup.value = newVal
@@ -122,7 +136,7 @@ function handleCommentSubmit() {
     <view v-if="showButton" class="flex items-center justify-around gap-2">
       <view class="flex flex-col cursor-pointer items-center justify-center px-2 text-[#999999]" @click="handleClickLike">
         <i
-          class="i-lucide-message-circle size-3"
+          class="i-lucide-message-circle size-4"
         />
         <text class="text-sm">
           {{ article?.commentCount || 0 }}
@@ -130,7 +144,7 @@ function handleCommentSubmit() {
       </view>
       <view class="flex flex-col cursor-pointer items-center justify-center px-2" @click="handleClickLike">
         <i
-          class="size-3" :class="[
+          class="size-4" :class="[
             article?.isLiked ? 'i-lucide-heart text-[#ff6b6b]' : 'i-lucide-heart text-[#999999]',
           ]"
         />
@@ -142,7 +156,7 @@ function handleCommentSubmit() {
     <view class="top-border-only" />
 
     <CommentPopup
-      v-model="showCommentPopup" :article-id="article.id" :paging="paging" :reply-to="replyTo"
+      v-model="showCommentPopup" :article-id="article.id" :paging="paging" :reply-to="props.replyTo"
       @comment="handleCommentSubmit"
     />
   </view>
