@@ -56,7 +56,7 @@ function handleClick() {
           <view class="text-2xl font-500">
             <text>{{ formattedDate.day }}</text>
           </view>
-          <view class="text-sm text-[#999] space-x-1">
+          <view class="text-xs text-[#999] space-x-1">
             <text>{{ formattedDate.month }}</text>
             <text>·</text>
             <text>{{ article?.category?.name }}</text>
@@ -121,7 +121,7 @@ function handleClick() {
       </view>
     </view>
     <!-- 模拟边框 -->
-    <view class="my-4 h-[1px] bg-gray-200 dark:bg-gray-700" />
+    <view class="my-4 h-[1px] bg-gray-100 dark:bg-gray-700" />
   </view>
 </template>
 
