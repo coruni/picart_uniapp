@@ -48,6 +48,7 @@ const previousReplyTo = ref(props.replyTo)
 const isKeyboardVisible = ref(false)
 const textareaIsFocused = ref(false)
 const commentTextarea = ref<HTMLTextAreaElement>()
+const inputMode = ref<'text' | 'none'>('text')
 onMounted(() => {
   // 组件挂载时不设置 currentKeyboardHeight
   // 只有当键盘真正弹起时才使用存储的高度
@@ -94,6 +95,14 @@ function handleEmojiClick() {
 
   showEmojiPanel.value = !showEmojiPanel.value
   showImagePanel.value = false
+
+  // 表情面板显示时，设置inputmode为none防止键盘弹出
+  if (showEmojiPanel.value) {
+    inputMode.value = 'none'
+  }
+  else {
+    inputMode.value = 'text'
+  }
 }
 
 function handleImageClick() {
@@ -133,6 +142,7 @@ function handleKeyboardHeightChange(res: any) {
   if (res.height > 0) {
     // 键盘弹起
     isKeyboardVisible.value = true
+    inputMode.value = 'text' // 键盘弹起时，确保inputmode为text
 
     // 优先使用存储的高度（已经测量过的准确高度）
     if (storeKeyboardHeight.value > 0) {
@@ -159,6 +169,8 @@ function handleInputFocus(e: any) {
   if (!showEmojiPanel.value && !showImagePanel.value) {
     showEmojiPanel.value = false
     showImagePanel.value = false
+    // 正常输入时，设置inputmode为text
+    inputMode.value = 'text'
   }
 
   // #ifdef APP-PLUS || MP-WEIXIN
@@ -208,6 +220,7 @@ watch(() => props.modelValue, (newVal, oldVal) => {
       showEmojiPanel.value = false
       showImagePanel.value = false
       isKeyboardVisible.value = false
+      inputMode.value = 'text' // 重置inputmode为text
       if (props.replyTo) {
         commentContent.value = ''
       }
@@ -276,7 +289,9 @@ const textareaMaxHeight = computed(() => {
           <view class="relative h-full w-full">
             <textarea
               ref="commentTextarea"
-              v-model="commentContent" :focus="textareaIsFocused"
+              v-model="commentContent"
+              :inputmode="inputMode"
+              :focus="textareaIsFocused"
               class="comment-textarea h-full w-full resize-none border-none outline-none" style="min-height: 120px;"
               :maxlength="2000" :auto-focus="false" :placeholder="placeholderText" :adjust-position="false"
               @focus="handleInputFocus" @blur="handleInputBlur"
