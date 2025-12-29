@@ -189,18 +189,13 @@ onLoad(async () => {
   }
 })
 
-onBackPress(() => {
+onBackPress((options) => {
+  console.log(options)
+  console.log('点击了返回按钮', imagePreviewVisible.value, showMoreMenu.value, isPopupOpen.value)
   if (imagePreviewVisible.value) {
-    isPopupOpen.value = false
+    imagePreviewVisible.value = false
     return true
   }
-})
-
-function handleClickLeft() {
-  navigateBack()
-}
-
-onBackPress((options) => {
   if (showMoreMenu.value) {
     showMoreMenu.value = false
     return true
@@ -211,6 +206,10 @@ onBackPress((options) => {
   }
   return false
 })
+
+function handleClickLeft() {
+  navigateBack()
+}
 
 function handleReply(comment: CommentEntity) {
   articleFooterRef.value?.setReply(comment)

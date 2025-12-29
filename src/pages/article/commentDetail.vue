@@ -1,11 +1,12 @@
 <script lang="ts" setup>
 import type { CommentEntity } from '@/api/types/comments'
-import { commentArticleIdUsingGet } from '@/service'
+import { commentIdUsingGet } from '@/service'
 import articleFooter from './components/articleFooter.vue'
 
 const comment = ref<CommentEntity | null>(null)
 const commentList = ref<CommentEntity[]>([])
 const paging = ref<ZPagingRef>()
+const isPopupOpen = ref(false)
 definePage({
   style: {
     navigationBarTitleText: '评论详情',
@@ -22,9 +23,9 @@ onLoad((options) => {
 
 async function fetchData(page: number, limit: number) {
   try {
-    const res = await commentArticleIdUsingGet({
+    const res = await commentIdUsingGet({
       params: {
-        id: Number(comment?.value.article.id),
+        id: Number(comment?.value?.id),
         page,
         limit,
       },
@@ -59,6 +60,13 @@ function formatTime(time: string) {
   return `${diffDays}天前`
 }
 const commentTime = computed(() => formatTime(comment.value?.createdAt || ''))
+onBackPress(() => {
+  if (isPopupOpen.value) {
+    isPopupOpen.value = false
+    return true
+  }
+  return false
+})
 </script>
 
 <template>
@@ -125,6 +133,7 @@ const commentTime = computed(() => formatTime(comment.value?.createdAt || ''))
     </block>
     <template #bottom>
       <article-footer
+        v-model:show-comment-popup="isPopupOpen"
         :article="(comment?.article as any)" :show-button="false" :paging="paging" :reply-to="comment ? {
           id: comment.id.toString(),
           author: {

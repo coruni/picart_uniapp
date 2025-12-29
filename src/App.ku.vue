@@ -42,12 +42,10 @@ const { isPreview, currentIdx, showIndicators, displayImages, article } = storeT
     <KuRootView />
     <FgTabbar v-if="isCurrentPageTabbar" />
     <imagePreview
+      v-if="isPreview"
       v-model="isPreview"
-      :current-index="currentIdx"
-      show-author
-      :show-indicators="showIndicators"
-      :images="displayImages"
-      :article="(article as ArticleEntity)"
+      enable-inner-back-press :current-index="currentIdx" show-author :show-indicators="showIndicators"
+      :images="displayImages" :article="(article as ArticleEntity)"
     />
   </view>
 </template>

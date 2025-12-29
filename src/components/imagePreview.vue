@@ -28,6 +28,10 @@ const props = defineProps({
     type: Boolean,
     default: true,
   },
+  enableInnerBackPress: {
+    type: Boolean,
+    default: false,
+  },
 })
 const emit = defineEmits<{
   'update:modelValue': [boolean]
@@ -390,13 +394,7 @@ defineExpose({
     emit('update:modelValue', false)
   },
 })
-onBackPress(() => {
-  if (props.modelValue) {
-    handleClose()
-    return true
-  }
-  return false
-})
+
 function handleOriginalClick() {
   if (!isArticlePreview && props.article?.id) {
     handleClose()
@@ -420,6 +418,35 @@ watch(() => props.modelValue, (newValue) => {
     // #endif
   }
 })
+
+onMounted(() => {
+  // 确保组件被挂载齁更改状态栏 // 因为有v-if 和modelVal的情况
+  // #ifdef APP
+  // 图片预览背景是黑色，状态栏图标应该是浅色
+  if (props.enableInnerBackPress) {
+    plus.navigator.setStatusBarStyle('light')
+  }
+  // #endif
+})
+
+onBeforeUnmount(() => {
+  // 组件卸载时，恢复原始状态栏样式
+  // #ifdef APP
+  if (props.enableInnerBackPress) {
+    plus.navigator.setStatusBarStyle(originalStatusBarStyle.value)
+  }
+  // #endif
+})
+
+if (props.enableInnerBackPress) {
+  onBackPress(() => {
+    if (props.modelValue) {
+      handleClose()
+      return true
+    }
+    return false
+  })
+}
 </script>
 
 <template>

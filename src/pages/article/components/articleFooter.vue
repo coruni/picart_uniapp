@@ -53,13 +53,6 @@ const replyTo = ref<{
     username: string
   }
 } | null>(props.replyTo)
-onBackPress(() => {
-  if (props.showCommentPopup) {
-    showCommentPopup.value = false
-    return true
-  }
-  return false
-})
 watch(() => props.replyTo, (newVal) => {
   replyTo.value = newVal
 }, { immediate: true, deep: true })

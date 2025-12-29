@@ -119,6 +119,23 @@ function selectImage() {
   })
 }
 
+// 键盘高度变化监听函数
+function handleKeyboardHeightChange(res: any) {
+  if (res.height > 0) {
+    isKeyboardVisible.value = true
+    const adjustedHeight = res.height
+    currentKeyboardHeight.value = adjustedHeight
+    userStore.setKeyboardHeight(adjustedHeight)
+    showEmojiPanel.value = false
+    showImagePanel.value = false
+  }
+  else {
+    isKeyboardVisible.value = false
+    currentKeyboardHeight.value = 0
+    userStore.setKeyboardHeight(0)
+  }
+}
+
 function handleInputFocus(e: any) {
   if (!showEmojiPanel.value && !showImagePanel.value) {
     showEmojiPanel.value = false
@@ -127,21 +144,7 @@ function handleInputFocus(e: any) {
 
   // #ifdef APP-PLUS || MP-WEIXIN
   if (!keyboardListenerRegistered.value) {
-    uni.onKeyboardHeightChange((res) => {
-      if (res.height > 0) {
-        isKeyboardVisible.value = true
-        const adjustedHeight = res.height
-        currentKeyboardHeight.value = adjustedHeight
-        userStore.setKeyboardHeight(adjustedHeight)
-        showEmojiPanel.value = false
-        showImagePanel.value = false
-      }
-      else {
-        isKeyboardVisible.value = false
-        currentKeyboardHeight.value = 0
-        userStore.setKeyboardHeight(0)
-      }
-    })
+    uni.onKeyboardHeightChange(handleKeyboardHeightChange)
     keyboardListenerRegistered.value = true
   }
   // #endif
@@ -153,7 +156,7 @@ function handleInputBlur() {
 onUnmounted(() => {
   // #ifdef APP-PLUS || MP-WEIXIN
   if (keyboardListenerRegistered.value) {
-    uni.offKeyboardHeightChange()
+    uni.offKeyboardHeightChange(handleKeyboardHeightChange)
     keyboardListenerRegistered.value = false
   }
   // #endif

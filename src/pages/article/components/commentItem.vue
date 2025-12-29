@@ -104,7 +104,7 @@ function toCommentDetail(comment: CommentEntity) {
       </view>
     </view>
     <view v-if="comment?.replies?.length > 0" class="pb-3 pl-11">
-      <view class="border-b-0 border-l-2 border-r-0 border-t-0 border-gray-100 border-solid pl-2 space-y-3">
+      <view class="border-b-0 border-l-2 border-r-0 border-t-0 border-gray-100 border-solid pl-2 space-y-3" @click.prevent.stop="toCommentDetail(comment)">
         <block v-for="sub in comment.replies.slice(0, 2)" :key="sub.id">
           <view class="flex flex-col gap-1 text-xs">
             <view class="flex items-center space-x-2">
