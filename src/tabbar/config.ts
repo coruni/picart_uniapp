@@ -43,7 +43,7 @@ export const nativeTabbarList: NativeTabBarItem[] = [
 // 如果需要配置鼓包，需要在 'tabbar/store.ts' 里面设置，最后在 `tabbar/index.vue` 里面更改鼓包的图片
 export const customTabbarList: CustomTabBarItem[] = [
   {
-    text: '%tabbar.home%',
+    text: '',
     pagePath: 'pages/index/index',
     // 注意 unocss 图标需要如下处理：（二选一）
     // 1）在fg-tabbar.vue页面上引入一下并注释掉（见tabbar/index.vue代码第2行）
@@ -53,8 +53,14 @@ export const customTabbarList: CustomTabBarItem[] = [
     // badge: 'dot',
   },
   {
+    text: '',
+    pagePath: 'pages/circle/index',
+    iconType: 'unocss',
+    icon: 'i-lucide-circle',
+  },
+  {
     pagePath: 'pages/me/me',
-    text: '%tabbar.me%',
+    text: '',
     iconType: 'unocss',
     icon: 'i-lucide-user',
     // badge: 10,

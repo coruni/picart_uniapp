@@ -5,7 +5,7 @@ import { storeToRefs } from 'pinia'
 import { t } from '@/locale'
 import { articleUsingGet } from '@/service'
 import { useAppStore } from '@/store/index'
-import homeHeader from './components/homeHeader.vue'
+import homeTabs from './components/homeTabs.vue'
 // 扩展ArticleEntity类型，添加_imageHeight属性
 interface ExtendedArticleEntity extends Omit<ArticleEntity, 'author'> {
   _imageHeight?: number
@@ -74,6 +74,12 @@ function handleTabChange(id: string) {
   waterfallRef.value?.clearCache()
   paging.value?.reload()
 }
+
+function toSearch() {
+  uni.navigateTo({
+    url: '/pages/search/index',
+  })
+}
 </script>
 
 <template>
@@ -90,8 +96,13 @@ function handleTabChange(id: string) {
       </view>
     </template>
     <template #top>
-      <view class="px-1">
-        <homeHeader @change="handleTabChange" />
+      <view class="px-1 pb-1">
+        <homeTabs @change="handleTabChange" />
+        <view class="px-3">
+          <view class="flex cursor-pointer items-center rounded-full bg-gray-100 px-2 py-2" @click="toSearch">
+            <i class="i-lucide-search text-sm text-gray-400" />
+          </view>
+        </view>
       </view>
     </template>
     <template v-if="appConfig.site_layout === 'waterfall'">

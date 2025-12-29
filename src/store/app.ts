@@ -6,7 +6,7 @@ import { categoryUsingGet, configPublicUsingGet } from '@/service'
 type Config = ConfigPublicUsingGetResponse['data']
 export const useAppStore = defineStore('app', () => {
   const appConfig = ref<Config>({} as Config)
-  const category = ref<CategoryEntity[]>([])
+  const categories = ref<CategoryEntity[]>([])
   const getConfig = async () => {
     const res = await configPublicUsingGet({})
     appConfig.value = res
@@ -22,11 +22,11 @@ export const useAppStore = defineStore('app', () => {
         limit: 100,
       },
     })
-    category.value = res.data
+    categories.value = res.data
   }
   return {
     appConfig,
-    category,
+    categories,
     fetchCategory,
     getConfig,
   }

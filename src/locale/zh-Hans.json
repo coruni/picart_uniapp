@@ -82,7 +82,9 @@
   },
   "home": {
     "recommend": "推荐",
-    "login": "登录"
+    "login": "登录",
+    "title": "首页",
+    "followTitle": "关注"
   },
   "me": {
     "login": "去登录",
@@ -100,6 +102,15 @@
       "reply": "回复",
       "replies": "{count} 条评论",
       "placeholder": "说点什么"
+    },
+    "time": {
+      "justNow": "刚刚",
+      "minuteAgo": "{count}分钟前",
+      "minutesAgo": "{count}分钟前",
+      "hourAgo": "{count}小时前",
+      "hoursAgo": "{count}小时前",
+      "dayAgo": "{count}天前",
+      "daysAgo": "{count}天前"
     }
   }
 }

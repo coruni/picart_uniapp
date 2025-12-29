@@ -3,6 +3,7 @@ import type { CommentEntity } from '@/api/types/comments'
 import { storeToRefs } from 'pinia'
 import { t } from '@/locale'
 import { useUserStore } from '@/store'
+import { formatTime } from '@/utils/date'
 
 const props = defineProps({
   comment: {
@@ -28,25 +29,6 @@ function handleReply(comment: CommentEntity) {
   emit('reply', comment)
 }
 
-// 计算时间 分钟前 小时前 几天前 最后是具体时间
-function formatTime(time: string) {
-  const now = new Date()
-  const commentTime = new Date(time)
-  const diff = now.getTime() - commentTime.getTime()
-  const diffMinutes = Math.floor(diff / 1000 / 60)
-  const diffHours = Math.floor(diff / 1000 / 60 / 60)
-  const diffDays = Math.floor(diff / 1000 / 60 / 60 / 24)
-  if (diffMinutes < 1) {
-    return '刚刚'
-  }
-  if (diffHours < 1) {
-    return `${diffMinutes}分钟前`
-  }
-  if (diffDays < 1) {
-    return `${diffHours}小时前`
-  }
-  return `${diffDays}天前`
-}
 const commentTime = computed(() => formatTime(props.comment.createdAt))
 function toCommentDetail(comment: CommentEntity) {
   // encodeURIComponent 编码

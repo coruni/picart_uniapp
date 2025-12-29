@@ -78,11 +78,9 @@
     "codeSendFailed": "Failed to send verification code, please try again later",
     "resetSuccess": "Password reset successful",
     "resetFailed": "Password reset failed, please try again later",
-    "rememberPassword": "Remember your password?"
-  },
-  "home": {
-    "recommend": "Recommend",
-    "login": "Login"
+    "rememberPassword": "Remember Password",
+    "login": "Login",
+    "followTitle": "Followed"
   },
   "me": {
     "login": "To Loigin",
@@ -100,6 +98,19 @@
       "reply": "Reply",
       "replies": "{count} Replies",
       "placeholder": "Say somthing?"
+    },
+    "time": {
+      "justNow": "Just now",
+      "minuteAgo": "{count} minute ago",
+      "minutesAgo": "{count} minutes ago",
+      "hourAgo": "{count} hour ago",
+      "hoursAgo": "{count} hours ago",
+      "dayAgo": "{count} day ago",
+      "daysAgo": "{count} days ago"
     }
+  },
+  "home": {
+    "followTitle": "Followed",
+    "title": "Home"
   }
 }

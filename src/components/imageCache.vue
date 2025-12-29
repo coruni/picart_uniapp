@@ -1,6 +1,4 @@
 <script lang="ts" setup>
-import { getCurrentInstance, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
-
 interface Props {
   src?: string
   mode?: 'scaleToFill' | 'aspectFit' | 'aspectFill' | 'widthFix' | 'heightFix' | 'top' | 'bottom' | 'center' | 'left' | 'right' | 'top left' | 'top right' | 'bottom left' | 'bottom right'
@@ -83,6 +81,9 @@ const observer = ref<any>(null)
 const containerRef = ref<any>(null)
 const isObserving = ref(false)
 const srcChangeTimer = ref<any>(null)
+const minLoadingTime = 200
+const loadStartTime = ref(0)
+const showLoadingOverlay = ref(true)
 
 // 计算容器样式 - 确保始终有明确的高度
 const containerStyle = computed(() => {
@@ -232,7 +233,6 @@ async function downloadAndCacheImage(src: string): Promise<string> {
 }
 
 async function loadImage() {
-  // 清除之前的定时器
   if (loadingTimer.value) {
     clearTimeout(loadingTimer.value)
     loadingTimer.value = null
@@ -241,60 +241,28 @@ async function loadImage() {
   if (!props.src) {
     isError.value = true
     isLoading.value = false
+    showLoadingOverlay.value = false
     return
   }
 
-  // 重置状态
   isLoading.value = true
   isError.value = false
   isLoaded.value = false
+  showLoadingOverlay.value = true
   retryCount.value = 0
+  loadStartTime.value = Date.now()
 
   try {
     let finalSrc = props.src
 
-    // 处理缓存逻辑
     if (props.useCache && (props.src.startsWith('http://') || props.src.startsWith('https://'))) {
       const cacheKey = getCacheKey(props.src)
       const cachedPath = getImageFromCache(cacheKey)
 
       if (cachedPath) {
-        // #ifdef H5
         finalSrc = cachedPath
-        // #endif
-
-        // #ifndef H5
-        // 验证缓存文件
-        try {
-          await new Promise((resolve, reject) => {
-            uni.getFileInfo({
-              filePath: cachedPath,
-              success: (res) => {
-                if (res.size > 0) {
-                  resolve(res)
-                }
-                else {
-                  reject(new Error('文件大小为0'))
-                }
-              },
-              fail: reject,
-            })
-          })
-          finalSrc = cachedPath
-        }
-        catch {
-          // 缓存失效，重新下载
-          try {
-            finalSrc = await downloadAndCacheImage(props.src)
-          }
-          catch {
-            finalSrc = props.src
-          }
-        }
-        // #endif
       }
       else {
-        // 首次下载
         try {
           finalSrc = await downloadAndCacheImage(props.src)
         }
@@ -304,15 +272,14 @@ async function loadImage() {
       }
     }
 
-    // 关键修复：使用nextTick确保DOM更新
     imageSrc.value = finalSrc
-
     await nextTick()
   }
   catch (error) {
     console.error('加载图片失败', error)
     isError.value = true
     isLoading.value = false
+    showLoadingOverlay.value = false
   }
 }
 
@@ -322,10 +289,17 @@ function handleLoad(event: any) {
     loadingTimer.value = null
   }
 
-  isLoaded.value = true
-  isLoading.value = false
-  isError.value = false
-  emit('load', event)
+  const elapsed = Date.now() - loadStartTime.value
+  const remainingTime = Math.max(0, minLoadingTime - elapsed)
+
+  loadingTimer.value = setTimeout(() => {
+    isLoaded.value = true
+    isLoading.value = false
+    showLoadingOverlay.value = false
+    isError.value = false
+    loadingTimer.value = null
+    emit('load', event)
+  }, remainingTime)
 }
 
 function handleError(event: ImageErrorEvent) {
@@ -336,8 +310,6 @@ function handleError(event: ImageErrorEvent) {
 
   console.error('图片加载失败:', event)
 
-  // 重试机制
-  // #ifndef H5
   if (retryCount.value < maxRetryCount && props.src && (props.src.startsWith('http://') || props.src.startsWith('https://'))) {
     retryCount.value++
     console.log(`尝试重新加载图片 (第${retryCount.value}次):`, props.src)
@@ -359,11 +331,17 @@ function handleError(event: ImageErrorEvent) {
     }, 1000)
     return
   }
-  // #endif
 
-  isError.value = true
-  isLoading.value = false
-  emit('error', event)
+  const elapsed = Date.now() - loadStartTime.value
+  const remainingTime = Math.max(0, minLoadingTime - elapsed)
+
+  loadingTimer.value = setTimeout(() => {
+    isError.value = true
+    isLoading.value = false
+    showLoadingOverlay.value = false
+    loadingTimer.value = null
+    emit('error', event)
+  }, remainingTime)
 }
 
 function handleClick(event: Event) {
@@ -491,7 +469,6 @@ function initIntersectionObserver() {
   // #endif
 }
 
-// 监听src变化 - 使用防抖优化频繁变化
 watch(() => props.src, (newSrc, oldSrc) => {
   if (newSrc === oldSrc) {
     return
@@ -511,6 +488,7 @@ watch(() => props.src, (newSrc, oldSrc) => {
     isLoading.value = true
     isError.value = false
     isLoaded.value = false
+    showLoadingOverlay.value = true
 
     cleanupObserver()
 
@@ -525,12 +503,17 @@ watch(() => props.src, (newSrc, oldSrc) => {
   }, 100)
 }, { immediate: false })
 
-// 监听是否进入视窗，进入后才开始加载图片
 watch(isInViewport, (newValue) => {
   if (newValue && props.src && !isLoaded.value && !isError.value) {
     loadImage()
   }
 }, { immediate: true })
+
+watch(isLoaded, (newValue) => {
+  if (newValue) {
+    showLoadingOverlay.value = false
+  }
+})
 
 onMounted(() => {
   isMounted.value = true
@@ -582,10 +565,31 @@ defineExpose({
     class="image-cache-container"
     @click="handleClick"
   >
-    <!-- 加载中状态 -->
+    <image
+      :src="imageSrc"
+      :mode="mode"
+      :lazy-load="lazyLoad"
+      class="block" :class="[
+        {
+          'opacity-0': !isLoaded,
+          'transition-opacity duration-300 ease-out': fadeShow,
+          'w-full': !props.width || props.width === '100%',
+          'h-full': props.mode !== 'widthFix' && (!props.height || props.height === '100%'),
+        },
+        customClass,
+      ]"
+      :style="imageStyle"
+      @load="handleLoad"
+      @error="handleError"
+    />
+
     <view
-      v-if="isLoading && !props.hideLoading"
-      class="absolute inset-0 z-10 flex items-center justify-center overflow-hidden"
+      v-show="showLoadingOverlay && isLoading && !props.hideLoading"
+      class="absolute inset-0 z-10 flex items-center justify-center overflow-hidden transition-opacity duration-200"
+      :class="{
+        'opacity-0': !isLoading,
+        'opacity-100': isLoading,
+      }"
     >
       <view v-if="props.placeholder" class="h-full w-full">
         <image :src="props.placeholder" :mode="mode" class="block h-full w-full" />
@@ -604,11 +608,14 @@ defineExpose({
       </view>
     </view>
 
-    <!-- 错误状态 -->
     <view
-      v-else-if="isError && !props.hideLoading"
-      class="absolute inset-0 z-10 flex items-center justify-center"
-      :class="!props.transparentBackground ? 'bg-gray-50' : ''"
+      v-show="isError && !props.hideLoading"
+      class="absolute inset-0 z-10 flex items-center justify-center transition-opacity duration-200"
+      :class="{
+        'opacity-0': !isError,
+        'opacity-100': isError,
+        'bg-gray-50': !props.transparentBackground,
+      }"
     >
       <view v-if="errorImage" class="h-full w-full">
         <image :src="errorImage" :mode="mode" class="block h-full w-full" />
@@ -622,27 +629,6 @@ defineExpose({
         <text class="text-xs text-gray-400">加载失败</text>
       </view>
     </view>
-
-    <!-- 正常图片 -->
-    <image
-      v-show="imageSrc && !isError && !isLoading"
-      :src="imageSrc"
-      :mode="mode"
-      :lazy-load="lazyLoad"
-      class="block" :class="[
-        {
-          'opacity-0': !isLoaded && fadeShow,
-          'opacity-100 transition-opacity duration-300': isLoaded && fadeShow,
-          'opacity-100': !fadeShow,
-          'w-full': !props.width || props.width === '100%',
-          'h-full': props.mode !== 'widthFix' && (!props.height || props.height === '100%'),
-        },
-        customClass,
-      ]"
-      :style="imageStyle"
-      @load="handleLoad"
-      @error="handleError"
-    />
   </view>
 </template>
 
