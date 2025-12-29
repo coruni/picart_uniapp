@@ -190,8 +190,7 @@ onLoad(async () => {
 })
 
 onBackPress(() => {
-  if (imagePreviewVisible.value || isPopupOpen.value) {
-    imagePreviewVisible.value = false
+  if (imagePreviewVisible.value) {
     isPopupOpen.value = false
     return true
   }

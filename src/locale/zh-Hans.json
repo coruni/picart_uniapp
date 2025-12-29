@@ -95,6 +95,10 @@
   "component": {
     "imagePreview": {
       "original": "查看原帖"
+    },
+    "comment": {
+      "reply": "回复",
+      "replies": "{count} 条评论"
     }
   }
 }

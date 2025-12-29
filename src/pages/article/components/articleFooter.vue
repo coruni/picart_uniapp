@@ -54,7 +54,7 @@ const replyTo = ref<{
   }
 } | null>(props.replyTo)
 onBackPress(() => {
-  if (showCommentPopup.value) {
+  if (props.showCommentPopup) {
     showCommentPopup.value = false
     return true
   }

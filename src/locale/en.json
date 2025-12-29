@@ -95,6 +95,10 @@
   "component": {
     "imagePreview": {
       "original": "View"
+    },
+    "comment": {
+      "reply": "Reply",
+      "replies": "{count} Replies"
     }
   }
 }
