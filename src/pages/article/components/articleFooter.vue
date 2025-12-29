@@ -12,6 +12,10 @@ const props = defineProps({
     type: Object as () => ArticleEntity,
     default: () => ({}),
   },
+  dark: {
+    type: Boolean,
+    default: false,
+  },
   paging: {
     type: Object as PropType<ZPagingRef>,
     default: null,
@@ -137,7 +141,7 @@ watch(showCommentPopup, (newVal) => {
 <template>
   <view class="relative h-12 flex items-center gap-2 px-4">
     <view class="flex flex-1 items-center" @click.self="handleClickComment">
-      <view class="block h-8 flex flex-1 items-center gap-2 rounded-full bg-[#f5f5f5] px-2" @click="handleClickComment">
+      <view class="block h-8 flex flex-1 items-center gap-2 rounded-full bg-[#f5f5f5] px-2" :class="[{ 'bg-[#222222]!': dark }]" @click="handleClickComment">
         <ImageCache :src="userInfo?.avatar || ''" border-radius="9999px" height="24px" width="24px" />
         <text class="text-sm text-sm text-[#999999]">{{ t('article.comment') }}</text>
       </view>
@@ -162,7 +166,7 @@ watch(showCommentPopup, (newVal) => {
         </text>
       </view>
     </view>
-    <view class="top-border-only" />
+    <view class="top-border-only" :class="[{ 'bg-transparent!': dark }]" />
 
     <CommentPopup
       v-model="showCommentPopup" :article-id="article.id" :paging="paging" :reply-to="replyTo"

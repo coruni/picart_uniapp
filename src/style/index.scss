@@ -1,6 +1,116 @@
 // 测试用的 iconfont，可生效
 // @import './iconfont.css';
 
+// 导入字体文件
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('../static/font/inter_thin.ttf') format('truetype');
+  font-weight: 100;
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('../static/font/inter_extra_light.ttf') format('truetype');
+  font-weight: 200;
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('../static/font/inter_light.ttf') format('truetype');
+  font-weight: 300;
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('../static/font/inter_regular.ttf') format('truetype');
+  font-weight: 400;
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('../static/font/inter_medium.ttf') format('truetype');
+  font-weight: 500;
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('../static/font/inter_semibold.ttf') format('truetype');
+  font-weight: 600;
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('../static/font/inter_bold.ttf') format('truetype');
+  font-weight: 700;
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('../static/font/inter_extra_bold.ttf') format('truetype');
+  font-weight: 800;
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('../static/font/inter_black.ttf') format('truetype');
+  font-weight: 900;
+}
+
+// 中文字体
+@font-face {
+  font-family: 'Source Han Sans';
+  font-style: normal;
+  font-weight: normal;
+  font-display: swap;
+  src: url('../static/font/source_han_sansk_regular.ttf') format('truetype');
+  font-weight: 400;
+}
+
+@font-face {
+  font-family: 'Source Han Sans';
+  font-style: normal;
+  font-weight: bold;
+  font-display: swap;
+  src: url('../static/font/source_han_sansk_bold.ttf') format('truetype');
+  font-weight: 700;
+}
+
+// 数字字体
+@font-face {
+  font-family: 'Roboto Numbers';
+  font-style: normal;
+  font-weight: normal;
+  font-display: swap;
+  src: url('../static/font/roboto_medium_numbers.ttf') format('truetype');
+}
+
 .test {
   // 可以通过 @apply 多个样式封装整体样式
   @apply mt-4 ml-4;
@@ -12,10 +122,36 @@
 :root,
 page {
   // 修改按主题色
-  // --wot-color-theme: #ff2d2d;
+  --wot-color-theme: #7990fa;
 
   // 修改按钮背景色
   // --wot-button-primary-bg-color: green;
+
+  // 全局字体设置
+  --font-family-en:
+    'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans',
+    'Helvetica Neue', sans-serif;
+  --font-family-zh:
+    'Source Han Sans', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', '微软雅黑', Arial, sans-serif;
+  --font-family-number: 'Roboto Numbers', 'Inter', monospace;
+
+  // 英文优先使用 Inter 字体，中文使用 Source Han Sans
+  font-family: var(--font-family-en), var(--font-family-zh), sans-serif;
+
+  // 数字使用专用字体
+  .number {
+    font-family: var(--font-family-number);
+  }
+
+  // 中文字体类
+  .zh {
+    font-family: var(--font-family-zh);
+  }
+
+  // 英文字体类
+  .en {
+    font-family: var(--font-family-en);
+  }
 }
 
 /*

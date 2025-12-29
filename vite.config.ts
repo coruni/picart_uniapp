@@ -57,6 +57,7 @@ export default defineConfig(({ command, mode }) => {
     VITE_APP_PROXY_ENABLE,
     VITE_APP_PROXY_PREFIX,
     VITE_COPY_NATIVE_RES_ENABLE,
+    VITE_ARTICLE_AUTHOR_LAYOUT,
   } = env
   console.log('环境变量 env -> ', env)
 

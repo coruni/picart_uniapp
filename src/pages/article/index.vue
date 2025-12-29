@@ -311,7 +311,11 @@ function handleImageClick(index: number) {
         <wd-loading size="24px" />
         <text class="mt-4 text-gray-500">{{ t('common.loading') }}</text>
       </view>
+
       <view v-else class="flex flex-1 flex-col">
+        <view v-if="!!article?.cover" class="h-48 overflow-hidden">
+          <ImageCache use-cache width="100%" height="100%" :src="article?.cover" />
+        </view>
         <view class="flex-1">
           <view class="px-4 pt-4">
             <text class="text-xl font-bold">{{ article?.title }}</text>
@@ -453,11 +457,8 @@ function handleImageClick(index: number) {
     </wd-popup>
 
     <ImagePreview
-      v-model="imagePreviewVisible"
-      :images="article?.images"
-      :article="article"
-      show-author
-      :current-index="imagePreviewIndex"
+      v-model="imagePreviewVisible" :images="article?.images" :show-indicators="false" :article="article"
+      show-author :current-index="imagePreviewIndex"
     />
   </z-paging>
 </template>

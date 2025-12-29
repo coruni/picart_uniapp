@@ -59,22 +59,24 @@ async function handleClickFollow() {
 
 <template>
   <view id="author-element" ref="authorElement" class="px-4">
-    <view class="author-element-bg box-border w-full flex items-center rounded-xl p-3">
+    <view class="box-border w-full flex items-center rounded-xl bg-gray-100 px-3 py-1">
       <view class="flex flex-1 items-center space-x-2">
         <view class="size-10">
           <ImageCache border-radius="9999px" use-cache width="100%" height="100%" :src="article.author?.avatar || ''" />
         </view>
         <view class="h-full">
-          <view class="text-sm text-white font-bold">
+          <view class="text-sm font-bold">
             {{ article.author?.nickname || article.author?.username || '未知作者' }}
           </view>
           <view class="line-clamp-1 text-ellipsis">
-            <wd-text size="10px" color="#eeeeeeac" :text="article.author?.description || ''" />
+            <wd-text size="10px" :text="article.author?.description || ''" />
           </view>
         </view>
       </view>
       <view class="flex items-center justify-center">
         <wd-button
+          custom-class="bg-transparent! px-6!"
+          plain
           size="small" :type="article.author.isFollowed ? 'info' : 'primary'" :loading="loading"
           @click="handleClickFollow"
         >
@@ -84,9 +86,3 @@ async function handleClickFollow() {
     </view>
   </view>
 </template>
-
-<style scoped>
-  .author-element-bg {
-  background-color: rgba(var(--wot-color-theme, 77, 128, 240), 0.8);
-}
-</style>

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { storeToRefs } from 'pinia'
+import { commentUsingPost } from '@/service'
 import { useUserStore } from '@/store'
 
 const props = defineProps({
@@ -58,13 +59,13 @@ async function handleSubmitComment() {
   try {
     isLoading.value = true
     console.log('提交评论', props.replyTo)
-    // await commentUsingPost({
-    //   body: {
-    //     articleId: Number(props.articleId),
-    //     content: commentContent.value,
-    //     parentId: props.replyTo?.id ? Number(props.replyTo?.id) : undefined,
-    //   },
-    // })
+    await commentUsingPost({
+      body: {
+        articleId: Number(props.articleId),
+        content: commentContent.value,
+        parentId: props.replyTo?.id ? Number(props.replyTo?.id) : undefined,
+      },
+    })
 
     try {
       props.paging.reload()
@@ -202,6 +203,7 @@ watch(() => props.modelValue, (newVal, oldVal) => {
 
 <template>
   <wd-popup
+    :z-index="9999"
     :model-value="modelValue" root-portal position="bottom" custom-class="rounded-t-xl"
     :safe-area-inset-bottom="true" :closable="false" @update:model-value="emit('update:modelValue', $event)"
   >
@@ -228,7 +230,7 @@ watch(() => props.modelValue, (newVal, oldVal) => {
       >
         <wd-textarea
           v-model="commentContent" auto-height show-word-limit :maxlength="2000" no-border
-          :show-actions="true" :auto-focus="true"
+          :show-actions="true" :auto-focus="false"
           :custom-class="isKeyboardVisible || showEmojiPanel || showImagePanel ? 'min-h-[80px]' : 'min-h-[80px] max-h-[200px]'"
           :adjust-position="false" :placeholder="placeholderText" @focus="handleInputFocus" @blur="handleInputBlur"
         />

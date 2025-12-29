@@ -26,6 +26,8 @@ interface ImportMetaEnv {
   /** 是否清除console */
   readonly VITE_DELETE_CONSOLE: string
   // 更多环境变量...
+  /** 文章作者布局，banner | header */
+  readonly VITE_ARTICLE_AUTHOR_LAYOUT: 'banner' | 'header'
 }
 
 interface ImportMeta {
