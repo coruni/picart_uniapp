@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { storeToRefs } from 'pinia'
+import { t } from '@/locale'
 import { commentUsingPost } from '@/service'
 import { useUserStore } from '@/store'
 
@@ -34,7 +35,7 @@ const emit = defineEmits<{
   'open': []
   'close': []
 }>()
-console.log('commentPopup props.replyTo:', props.replyTo)
+
 const userStore = useUserStore()
 const commentContent = ref('')
 const showEmojiPanel = ref<boolean>(false)
@@ -45,11 +46,11 @@ const keyboardListenerRegistered = ref<boolean>(false)
 const isLoading = ref(false)
 const previousReplyTo = ref(props.replyTo)
 const isKeyboardVisible = ref(false)
-
+const textareaIsFocused = ref(false)
+const commentTextarea = ref<HTMLTextAreaElement>()
 onMounted(() => {
-  if (storeKeyboardHeight.value > 0) {
-    currentKeyboardHeight.value = storeKeyboardHeight.value
-  }
+  // 组件挂载时不设置 currentKeyboardHeight
+  // 只有当键盘真正弹起时才使用存储的高度
 })
 
 async function handleSubmitComment() {
@@ -108,7 +109,14 @@ function handleImageClick() {
 }
 
 function selectEmoji(emoji: string) {
-  commentContent.value += emoji
+  // 获取光标位置
+  uni.getSelectedTextRange({
+    success: (res) => {
+      const { end, start } = res
+      // 插入表情符
+      commentContent.value = commentContent.value.slice(0, start) + emoji + commentContent.value.slice(end)
+    },
+  })
 }
 
 function selectImage() {
@@ -123,17 +131,27 @@ function selectImage() {
 // 键盘高度变化监听函数
 function handleKeyboardHeightChange(res: any) {
   if (res.height > 0) {
+    // 键盘弹起
     isKeyboardVisible.value = true
-    const adjustedHeight = res.height
-    currentKeyboardHeight.value = adjustedHeight
-    userStore.setKeyboardHeight(adjustedHeight)
+
+    // 优先使用存储的高度（已经测量过的准确高度）
+    if (storeKeyboardHeight.value > 0) {
+      currentKeyboardHeight.value = storeKeyboardHeight.value
+    }
+    else {
+      // 第一次获取键盘高度，存储起来
+      currentKeyboardHeight.value = res.height
+      userStore.setKeyboardHeight(res.height)
+    }
+
     showEmojiPanel.value = false
     showImagePanel.value = false
   }
   else {
+    // 键盘收起 - 必须设置为 0，因为键盘已经隐藏
     isKeyboardVisible.value = false
     currentKeyboardHeight.value = 0
-    userStore.setKeyboardHeight(0)
+    // 不重置 store 中的键盘高度，保持持久化
   }
 }
 
@@ -165,9 +183,9 @@ onUnmounted(() => {
 
 const placeholderText = computed(() => {
   if (props.replyTo) {
-    return `回复 ${props.replyTo.author?.nickname || props.replyTo.author?.username || ''}`
+    return `${t('component.comment.reply')} ${props.replyTo.author?.nickname || props.replyTo.author?.username || ''}`
   }
-  return '输入评论内容'
+  return t('component.comment.placeholder')
 })
 
 watch(() => props.replyTo, (newVal, oldVal) => {
@@ -195,103 +213,129 @@ watch(() => props.modelValue, (newVal, oldVal) => {
       }
 
       uni.hideKeyboard()
-      userStore.setKeyboardHeight(0)
+      currentKeyboardHeight.value = 0 // 确保重置为 0
+      // 不重置 store，保持持久化
     }
   }
+})
+
+// 计算外层包裹容器的样式（用于添加 paddingBottom 顶起整个弹窗）
+const wrapperStyle = computed(() => {
+  const style: any = {}
+
+  // 当键盘弹起且没有显示表情/图片面板时，添加 paddingBottom
+  if (isKeyboardVisible.value && !showEmojiPanel.value && !showImagePanel.value) {
+    style.paddingBottom = `${currentKeyboardHeight.value}px`
+  }
+
+  return style
+})
+
+// 计算弹窗内容的样式
+const contentStyle = computed(() => {
+  const style: any = {
+    maxHeight: '60vh',
+    overflow: 'hidden',
+  }
+
+  // 当显示表情面板时，固定高度
+  if (showEmojiPanel.value) {
+    style.height = '60vh'
+  }
+
+  return style
+})
+
+// 计算输入区域的最大高度
+const textareaMaxHeight = computed(() => {
+  if (showEmojiPanel.value) {
+    return 'calc(60vh - 260px)' // 减去工具栏和表情面板的高度
+  }
+  if (isKeyboardVisible.value && !showEmojiPanel.value && !showImagePanel.value) {
+    return '200px' // 键盘弹起时的高度
+  }
+  return '300px' // 默认高度
 })
 </script>
 
 <template>
   <wd-popup
-    :z-index="9999"
-    :model-value="modelValue" root-portal position="bottom" custom-class="rounded-t-xl"
-    :safe-area-inset-bottom="true" :closable="false" @update:model-value="emit('update:modelValue', $event)"
+    :z-index="9999" :model-value="modelValue" root-portal position="bottom" custom-class="rounded-t-xl"
+    :safe-area-inset-bottom="false" :closable="false" @update:model-value="emit('update:modelValue', $event)"
   >
-    <view
-      class="flex flex-col" :style="{
-        minHeight: isKeyboardVisible ? `calc(60vh - ${currentKeyboardHeight}px)` : 'auto',
-        paddingBottom: isKeyboardVisible && !showEmojiPanel && !showImagePanel ? `${currentKeyboardHeight}px` : '0',
-        marginBottom: isKeyboardVisible && !showEmojiPanel && !showImagePanel ? '-36px' : '0',
-      }"
-    >
-      <view
-        class="p-4" :style="{
-          height: isKeyboardVisible && !showEmojiPanel && !showImagePanel
-            ? `calc(60vh - ${currentKeyboardHeight}px - 120px)`
-            : 'auto',
-          maxHeight: isKeyboardVisible && !showEmojiPanel && !showImagePanel
-            ? `calc(60vh - ${currentKeyboardHeight}px - 120px)`
-            : showEmojiPanel || showImagePanel
-              ? 'calc(60vh - 240px)'
-              : '200px',
-          overflowY: 'auto',
-          flexShrink: 1,
-        }"
-      >
-        <wd-textarea
-          v-model="commentContent" auto-height show-word-limit :maxlength="2000" no-border
-          :show-actions="true" :auto-focus="false"
-          :custom-class="isKeyboardVisible || showEmojiPanel || showImagePanel ? 'min-h-[80px]' : 'min-h-[80px] max-h-[200px]'"
-          :adjust-position="false" :placeholder="placeholderText" @focus="handleInputFocus" @blur="handleInputBlur"
-        />
-      </view>
-
-      <view class="flex flex-shrink-0 flex-col">
-        <view class="flex items-center justify-between border-t border-gray-100 p-4">
-          <view class="flex items-center gap-4">
-            <view
-              class="h-8 w-8 flex items-center justify-center rounded-full hover:bg-gray-100"
-              :class="showEmojiPanel ? 'bg-blue-100' : ''" @click="handleEmojiClick"
-            >
-              <view class="i-lucide:smile size-5" :class="showEmojiPanel ? 'text-primary/80' : 'text-gray-600'" />
+    <!-- 外层包裹容器：添加 paddingBottom 顶起整个弹窗 -->
+    <view class="transition-all duration-300" :style="wrapperStyle">
+      <!-- 弹窗内容容器：固定高度，防止滚动 -->
+      <view class="flex flex-col rounded-t-xl bg-white" :style="contentStyle">
+        <!-- 输入区域 - 可滚动 -->
+        <view
+          class="flex-1 overflow-y-auto p-4" :style="{
+            maxHeight: textareaMaxHeight,
+          }"
+        >
+          <view class="relative h-full w-full">
+            <textarea
+              ref="commentTextarea"
+              v-model="commentContent" :focus="textareaIsFocused"
+              class="comment-textarea h-full w-full resize-none border-none outline-none" style="min-height: 120px;"
+              :maxlength="2000" :auto-focus="false" :placeholder="placeholderText" :adjust-position="false"
+              @focus="handleInputFocus" @blur="handleInputBlur"
+            />
+            <view class="absolute bottom-1 right-1 text-xs text-gray-400">
+              {{ commentContent.length }}/2000
             </view>
-
-            <view
-              class="h-8 w-8 flex items-center justify-center rounded-full hover:bg-gray-100"
-              :class="showImagePanel ? 'bg-blue-100' : ''" @click="handleImageClick"
-            >
-              <view class="i-lucide:image size-5" :class="showImagePanel ? 'text-primary/80' : 'text-gray-600'" />
-            </view>
-          </view>
-
-          <wd-button
-            class="rounded-full px-4 py-2 text-sm text-white" size="small"
-            :disabled="commentContent.trim() === '' || isLoading" @click="handleSubmitComment"
-          >
-            发送
-          </wd-button>
-        </view>
-
-        <view v-if="showEmojiPanel && currentKeyboardHeight === 0" class="border-t-md border-gray-100 bg-white p-3">
-          <view class="max-h-[200px] flex flex-wrap gap-2 overflow-y-auto">
-            <text
-              v-for="(emoji, index) in ['😀', '😃', '😄', '😁', '😅', '😂', '🤣', '😊', '😇', '🙂', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚', '😋', '😛', '😜', '🤪', '😝', '🤑', '🤗', '🤭', '🤫', '🤔', '🤐', '🤨']"
-              :key="index" class="cursor-pointer rounded p-2 text-2xl hover:bg-gray-100" @click="selectEmoji(emoji)"
-            >
-              {{ emoji }}
-            </text>
           </view>
         </view>
 
-        <!-- <view v-if="showImagePanel && keyboardHeight === 0" class="border-t border-gray-100 bg-white p-4">
-          <view class="flex flex-col gap-3">
-            <view class="flex items-center justify-center border-2 border-gray-300 rounded-lg border-dashed p-8">
-              <view class="text-center">
-                <view class="i-lucide:upload mx-auto mb-2 size-12 text-gray-400" />
-                <text class="text-sm text-gray-500">点击选择图片</text>
+        <!-- 底部操作栏 - 固定不滚动 -->
+        <view class="flex flex-shrink-0 flex-col border-t border-gray-100">
+          <!-- 工具栏 -->
+          <view class="flex items-center justify-between p-4">
+            <view class="flex items-center gap-4">
+              <view
+                class="h-8 w-8 flex items-center justify-center rounded-full hover:bg-gray-100"
+                :class="showEmojiPanel ? 'bg-blue-100' : ''" @touchend.prevent="handleEmojiClick"
+              >
+                <view class="i-lucide:smile size-5" :class="showEmojiPanel ? 'text-primary/80' : 'text-gray-600'" />
+              </view>
+
+              <view
+                class="h-8 w-8 flex items-center justify-center rounded-full hover:bg-gray-100"
+                :class="showImagePanel ? 'bg-blue-100' : ''" @touchend.prevent="handleImageClick"
+              >
+                <view class="i-lucide:image size-5" :class="showImagePanel ? 'text-primary/80' : 'text-gray-600'" />
               </view>
             </view>
-            <view class="flex gap-2">
-              <wd-button type="primary" block @click="selectImage">
-                从相册选择
-              </wd-button>
-              <wd-button type="primary" block @click="selectImage">
-                拍照
-              </wd-button>
+
+            <wd-button
+              class="rounded-full px-4 py-2 text-sm text-white" size="small"
+              :disabled="commentContent.trim() === '' || isLoading" @click="handleSubmitComment"
+            >
+              发送
+            </wd-button>
+          </view>
+
+          <!-- 表情面板 -->
+          <view v-if="showEmojiPanel && currentKeyboardHeight === 0" class="border-t border-gray-100 bg-white p-3">
+            <view class="h-[200px] flex flex-wrap gap-2 overflow-y-auto">
+              <text
+                v-for="(emoji, index) in ['😀', '😃', '😄', '😁', '😅', '😂', '🤣', '😊', '😇', '🙂', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚', '😋', '😛', '😜', '🤪', '😝', '🤑', '🤗', '🤭', '🤫', '🤔', '🤐', '🤨']"
+                :key="index" class="cursor-pointer rounded p-2 text-2xl hover:bg-gray-100"
+                @touchend.prevent="selectEmoji(emoji)"
+              >
+                {{ emoji }}
+              </text>
             </view>
           </view>
-        </view> -->
+        </view>
       </view>
     </view>
   </wd-popup>
 </template>
+
+<style scoped>
+.comment-textarea::placeholder {
+  font-size: 8px;
+  color: #999;
+}
+</style>

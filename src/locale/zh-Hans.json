@@ -98,7 +98,8 @@
     },
     "comment": {
       "reply": "回复",
-      "replies": "{count} 条评论"
+      "replies": "{count} 条评论",
+      "placeholder": "说点什么"
     }
   }
 }

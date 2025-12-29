@@ -98,7 +98,8 @@
     },
     "comment": {
       "reply": "Reply",
-      "replies": "{count} Replies"
+      "replies": "{count} Replies",
+      "placeholder": "Say somthing?"
     }
   }
 }
